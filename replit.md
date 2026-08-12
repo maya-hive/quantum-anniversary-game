@@ -1,10 +1,11 @@
-# [Project name]
+# Quantum Hoops Anniversary Game
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+A playful Quantum.lk anniversary basketball game where visitors enter their details, aim at four discount hoops, take three shots, and keep their highest reward.
 
 ## Run & Operate
 
 - `pnpm --filter @workspace/api-server run dev` — run the API server (port 5000)
+- `pnpm --filter @workspace/quantum-anniversary-game run dev` — run the anniversary game preview
 - `pnpm run typecheck` — full typecheck across all packages
 - `pnpm run build` — typecheck + build all packages
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
@@ -22,23 +23,33 @@ _Replace the heading above with the project's name, and this line with one sente
 
 ## Where things live
 
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+- `artifacts/quantum-anniversary-game/src/App.tsx` — game flow, player form, gameplay, persistence, and CSV campaign export
+- `artifacts/quantum-anniversary-game/src/index.css` — Quantum-inspired visual tokens and responsive game styling
+- `artifacts/quantum-anniversary-game/.replit-artifact/artifact.toml` — artifact preview and workflow metadata
+- `artifacts/api-server/` — shared API server scaffold; the current game is frontend-only
 
 ## Architecture decisions
 
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
+- The game is intentionally frontend-only for the first release so it works as a standalone campaign microsite.
+- Player details and the in-progress session persist in local storage so a mobile refresh does not erase a round.
+- Discount values live in one editable `HOOP_REWARDS` constant; the final reward is always the highest landed discount across three attempts.
+- Campaign export downloads a CSV with the full player record and shot history when Google Sheets is not connected.
 
 ## Product
 
-_Describe the high-level user-facing capabilities of this app once they exist._
+- Collects name, email, and phone number before play.
+- Provides mouse and touch aiming with an animated basketball shot into one of four discount hoops.
+- Gives players exactly three chances and applies the best discount landed.
+- Offers a campaign-ready CSV export containing contact details, shot results, best discount, and timestamp.
 
 ## User preferences
 
-_Populate as you build — explicit user instructions worth remembering across sessions._
+- Keep the experience aligned with Quantum.lk's fitness and anniversary campaign identity.
 
 ## Gotchas
 
-_Populate as you build — sharp edges, "always run X before Y" rules._
+- The game preview workflow supplies `PORT` and `BASE_PATH`; use `PORT=4173 BASE_PATH=/` when running a standalone production build locally.
+- Google Sheets is not currently connected, so campaign data is exported through the in-app CSV fallback.
 
 ## Pointers
 

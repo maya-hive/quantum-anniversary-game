@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "Quantum Hoops Anniversary Game"
+description = "A playful anniversary basketball game for Quantum.lk where visitors enter their details, aim at four discount hoops, get three shots, and receive the best discount they land."
+version = "1.0.0"
+id = "artifacts/quantum-anniversary-game"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 20033
+
+[services.development]
+run = "pnpm --filter @workspace/quantum-anniversary-game run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/quantum-anniversary-game", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/quantum-anniversary-game/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "20033"
+BASE_PATH = "/"

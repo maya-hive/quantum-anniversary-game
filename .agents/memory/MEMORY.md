@@ -1,0 +1,1 @@
+- [Campaign export path](google-sheets-export.md) — keep a CSV fallback until the campaign's Google Sheets connection is authorized.
