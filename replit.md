@@ -32,7 +32,8 @@ A playful Quantum.lk anniversary basketball game where visitors enter their deta
 
 - The game is intentionally frontend-only for the first release so it works as a standalone campaign microsite.
 - Player details and the in-progress session persist in local storage so a mobile refresh does not erase a round.
-- Discount values live in one editable `HOOP_REWARDS` constant; the final reward is always the highest landed discount across three attempts.
+- Discount values live in one editable `HOOP_REWARDS` constant and are shuffled across the four hidden hoops for each new player; the final reward is always the highest landed discount across three attempts.
+- A release only wins when it is close enough to a hoop; releases outside the forgiving target zone are recorded as misses.
 - Campaign export downloads a CSV with the full player record and shot history when Google Sheets is not connected.
 
 ## Product

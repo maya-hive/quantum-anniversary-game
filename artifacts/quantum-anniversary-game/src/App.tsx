@@ -22,16 +22,28 @@ import { Route, Switch, Router as WouterRouter, useLocation } from 'wouter';
 const queryClient = new QueryClient();
 const STORAGE_KEY = 'quantum-hoops-anniversary-session';
 const HOOP_REWARDS = [5, 10, 15, 25] as const;
+const HOOP_POSITIONS = [.13, .375, .62, .86] as const;
 const MAX_SHOTS = 3;
 
 type Entry = { name: string; email: string; phone: string };
+type ShotResult = number | null;
 type Session = {
   phase: 'entry' | 'game' | 'result';
   entry: Entry | null;
-  shots: number[];
+  shots: ShotResult[];
   best: number;
   timestamp: string;
+  hoopRewards: number[];
 };
+
+function shuffleRewards() {
+  const shuffled = [...HOOP_REWARDS];
+  for (let index = shuffled.length - 1; index > 0; index -= 1) {
+    const swapIndex = Math.floor(Math.random() * (index + 1));
+    [shuffled[index], shuffled[swapIndex]] = [shuffled[swapIndex], shuffled[index]];
+  }
+  return shuffled;
+}
 
 function readSession(): Session | null {
   try {
@@ -186,22 +198,18 @@ function EntryScreen({ onStart }: { onStart: (entry: Entry) => void }) {
   );
 }
 
-function Hoop({ reward, index, active }: { reward: number; index: number; active: boolean }) {
-  const left = `${[13, 37.5, 62, 86][index]}%`;
+function Hoop({ index, active }: { index: number; active: boolean }) {
+  const left = `${HOOP_POSITIONS[index] * 100}%`;
   const colors = ['#e8a333', '#f65a38', '#167f96', '#f8c842'];
   const color = colors[index];
   return (
-    <div className={`absolute top-[23%] -translate-x-1/2 transition-transform duration-300 ${active ? 'scale-110' : ''}`} style={{ left }} data-testid={`hoop-${reward}`}>
+    <div className={`absolute top-[23%] -translate-x-1/2 transition-transform duration-300 ${active ? 'scale-110' : ''}`} style={{ left }} data-testid={`hoop-${index + 1}`}>
       <div className="relative h-[115px] w-[112px] sm:h-[144px] sm:w-[138px]">
         <div className="absolute left-1/2 top-0 h-[53px] w-[72px] -translate-x-1/2 rounded border-[3px] border-[#f6f3e7]/80 bg-[#d9e2df]/20 shadow-[2px_2px_0_#18243b]/30 sm:h-[67px] sm:w-[91px]" />
         <div className="absolute left-1/2 top-[17px] h-[56px] w-[3px] -translate-x-1/2 bg-[#f6f3e7]/70 sm:h-[73px]" />
         <div className="absolute left-1/2 top-[47px] h-3 w-[61px] -translate-x-1/2 rounded-[50%] border-[4px] border-[#f65a38] bg-transparent sm:top-[61px] sm:w-[78px] sm:border-[5px]" style={{ borderColor: color }} />
         <div className={`hoop-net absolute left-1/2 top-[52px] h-[38px] w-[47px] -translate-x-1/2 border-x-[2px] border-b-[2px] border-dashed border-[#f6f3e7]/70 sm:top-[66px] sm:h-[49px] sm:w-[61px]`} />
         <div className="absolute left-1/2 top-[90px] h-5 w-[2px] -translate-x-1/2 bg-[#f6f3e7]/45 sm:top-[113px]" />
-        <div className={`absolute left-1/2 top-[96px] -translate-x-1/2 whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-black shadow-[2px_2px_0_#18243b] sm:top-[117px] sm:px-3 sm:text-sm ${reward === 25 ? 'bg-[#f8c842] text-[#18243b]' : 'bg-[#fff8e9] text-[#18243b]'}`}>
-          {reward}% off
-        </div>
-        {reward === 25 ? <div className="absolute -right-6 -top-2 rotate-6 rounded bg-[#f8c842] px-1.5 py-0.5 text-[8px] font-black uppercase tracking-widest text-[#18243b]">Grand</div> : null}
       </div>
     </div>
   );
@@ -233,10 +241,12 @@ function Hand({ aiming }: { aiming: boolean }) {
 
 function GameCourt({
   shots,
+  hoopRewards,
   onShot,
 }: {
-  shots: number[];
-  onShot: (target: number, shotStyle: CSSProperties) => void;
+  shots: ShotResult[];
+  hoopRewards: number[];
+  onShot: (target: ShotResult, shotStyle: CSSProperties) => void;
 }) {
   const courtRef = useRef<HTMLDivElement>(null);
   const [aim, setAim] = useState({ x: .5, y: .52 });
@@ -244,7 +254,7 @@ function GameCourt({
   const [isShooting, setIsShooting] = useState(false);
   const [shotStyle, setShotStyle] = useState<CSSProperties>();
   const [activeHoop, setActiveHoop] = useState<number | null>(null);
-  const [landed, setLanded] = useState<number | null>(null);
+  const [landed, setLanded] = useState<number | 'miss' | null>(null);
 
   function updateAim(clientX: number, clientY: number) {
     const rect = courtRef.current?.getBoundingClientRect();
@@ -273,25 +283,27 @@ function GameCourt({
     const finalX = rect ? Math.max(.04, Math.min(.96, (event.clientX - rect.left) / rect.width)) : aim.x;
     const finalY = rect ? Math.max(.1, Math.min(.78, (event.clientY - rect.top) / rect.height)) : aim.y;
     setAim({ x: finalX, y: finalY });
-    const target = HOOP_REWARDS.reduce((bestIndex, _reward, index) => {
-      const positions = [.13, .375, .62, .86];
-      return Math.abs(positions[index] - finalX) < Math.abs(positions[bestIndex] - finalX) ? index : bestIndex;
+    const target = HOOP_POSITIONS.reduce((bestIndex, _position, index) => {
+      return Math.abs(HOOP_POSITIONS[index] - finalX) < Math.abs(HOOP_POSITIONS[bestIndex] - finalX) ? index : bestIndex;
     }, 0);
+    const xDistance = Math.abs(HOOP_POSITIONS[target] - finalX);
+    const yDistance = Math.abs(.31 - finalY);
+    const hitHoop = xDistance <= .085 && yDistance <= .22;
     const style = {
-      '--shot-x': `${((target === 0 ? .13 : target === 1 ? .375 : target === 2 ? .62 : .86) - .5) * (rect?.width ?? 700)}px`,
+      '--shot-x': `${(finalX - .5) * (rect?.width ?? 700)}px`,
       '--shot-rise': `-${(rect?.height ?? 560) * .63}px`,
       '--shot-drop': `-${(rect?.height ?? 560) * .53}px`,
       '--shot-end': `-${(rect?.height ?? 560) * .48}px`,
     } as CSSProperties;
-    setActiveHoop(target);
+    setActiveHoop(hitHoop ? target : null);
     setShotStyle(style);
     setIsShooting(true);
     window.setTimeout(() => {
-      setLanded(HOOP_REWARDS[target]);
+      setLanded(hitHoop ? hoopRewards[target] : 'miss');
       setIsShooting(false);
       setShotStyle(undefined);
       setActiveHoop(null);
-      onShot(HOOP_REWARDS[target], style);
+      onShot(hitHoop ? hoopRewards[target] : null, style);
       window.setTimeout(() => setLanded(null), 1800);
     }, 1080);
   }
@@ -317,7 +329,7 @@ function GameCourt({
       <div className="absolute left-5 top-5 z-10 flex items-center gap-2 rounded-full bg-[#0d5366]/60 px-3 py-2 text-[10px] font-bold uppercase tracking-[.17em] text-[#d8f0eb] sm:left-7 sm:top-7">
         <Target size={14} /> Aim and release
       </div>
-      {HOOP_REWARDS.map((reward, index) => <Hoop active={activeHoop === index} index={index} key={reward} reward={reward} />)}
+      {HOOP_POSITIONS.map((_position, index) => <Hoop active={activeHoop === index} index={index} key={index} />)}
       <div className="absolute bottom-[18%] left-1/2 h-px -translate-x-1/2 transition-all duration-150" style={{ width: `${guideWidth}%`, transform: `translateX(-50%) rotate(${(aim.x - .5) * 18}deg)`, opacity: isAiming ? 1 : .55 }}>
         <div className="absolute inset-x-0 top-0 border-t-2 border-dashed border-[#f8c842]" />
         <div className="absolute -right-1 -top-1.5 h-3 w-3 rounded-full bg-[#f8c842] shadow-[0_0_0_4px_rgba(248,200,66,.2)]" />
@@ -334,8 +346,8 @@ function GameCourt({
       </div>
       {landed !== null ? (
         <div className="animate-enter-up absolute left-1/2 top-[49%] z-30 -translate-x-1/2 rounded-2xl border-2 border-[#18243b] bg-[#f8c842] px-5 py-3 text-center shadow-[5px_5px_0_#18243b]" data-testid="status-landed">
-          <div className="text-[10px] font-bold uppercase tracking-[.18em] text-[#536078]">You landed</div>
-          <div className="display-font text-4xl font-black leading-none">{landed}% OFF</div>
+          <div className="text-[10px] font-bold uppercase tracking-[.18em] text-[#536078]">{landed === 'miss' ? 'Just missed' : 'Reward unlocked'}</div>
+          <div className="display-font text-4xl font-black leading-none">{landed === 'miss' ? 'No hoop' : `${landed}% OFF`}</div>
         </div>
       ) : null}
     </div>
@@ -355,7 +367,7 @@ function Progress({ count }: { count: number }) {
   );
 }
 
-function GameScreen({ entry, shots, best, onShot, onRestart }: { entry: Entry; shots: number[]; best: number; onShot: (reward: number) => void; onRestart: () => void }) {
+function GameScreen({ entry, shots, best, hoopRewards, onShot, onRestart }: { entry: Entry; shots: ShotResult[]; best: number; hoopRewards: number[]; onShot: (reward: ShotResult) => void; onRestart: () => void }) {
   return (
     <main className="min-h-[100dvh] bg-[#f5f1e5] text-[#18243b]">
       <header className="mx-auto flex max-w-[1400px] items-center justify-between px-5 py-4 sm:px-8 lg:px-12">
@@ -376,9 +388,9 @@ function GameScreen({ entry, shots, best, onShot, onRestart }: { entry: Entry; s
             {best > 0 ? <div className="border-l border-[#ddd8ca] pl-4"><div className="text-[9px] font-bold uppercase tracking-[.14em] text-[#536078]">Best so far</div><div className="display-font text-2xl font-black text-[#167f96]">{best}%</div></div> : null}
           </div>
         </div>
-        <GameCourt onShot={onShot} shots={shots} />
+        <GameCourt hoopRewards={hoopRewards} onShot={onShot} shots={shots} />
         <div className="mt-5 flex items-center justify-between gap-3 text-xs text-[#536078]">
-          <span className="flex items-center gap-2"><span className="grid h-6 w-6 place-items-center rounded-full bg-[#f8c842] text-[#18243b]"><Target size={13} /></span> The closer you aim, the better your shot.</span>
+          <span className="flex items-center gap-2"><span className="grid h-6 w-6 place-items-center rounded-full bg-[#f8c842] text-[#18243b]"><Target size={13} /></span> Hit a hoop to reveal its hidden reward.</span>
           <span className="hidden font-bold uppercase tracking-[.12em] sm:block">{MAX_SHOTS - shots.length} {MAX_SHOTS - shots.length === 1 ? 'chance' : 'chances'} left</span>
         </div>
       </div>
@@ -390,7 +402,7 @@ function Confetti() {
   return <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">{Array.from({ length: 15 }).map((_, index) => <span className="confetti-piece absolute h-3 w-2" key={index} style={{ background: ['#f65a38', '#f8c842', '#167f96', '#18243b'][index % 4], left: `${(index * 37) % 100}%`, top: `${8 + ((index * 23) % 28)}%`, transform: `rotate(${index * 27}deg)`, animationDelay: `${index * 30}ms` }} />)}</div>;
 }
 
-function ExportPanel({ entry, shots, best, timestamp, onClose }: { entry: Entry; shots: number[]; best: number; timestamp: string; onClose: () => void }) {
+function ExportPanel({ entry, shots, best, timestamp, onClose }: { entry: Entry; shots: ShotResult[]; best: number; timestamp: string; onClose: () => void }) {
   function download() {
     const cells = [entry.name, entry.email, entry.phone, shots[0] ?? '', shots[1] ?? '', shots[2] ?? '', best, timestamp];
     const csv = ['player_name,email,phone,shot_1_discount,shot_2_discount,shot_3_discount,best_discount,timestamp', cells.map((cell) => `"${String(cell).replaceAll('"', '""')}"`).join(',')].join('\n');
@@ -414,7 +426,7 @@ function ExportPanel({ entry, shots, best, timestamp, onClose }: { entry: Entry;
   );
 }
 
-function ResultScreen({ entry, shots, best, timestamp, onRestart }: { entry: Entry; shots: number[]; best: number; timestamp: string; onRestart: () => void }) {
+function ResultScreen({ entry, shots, best, timestamp, onRestart }: { entry: Entry; shots: ShotResult[]; best: number; timestamp: string; onRestart: () => void }) {
   const [exportOpen, setExportOpen] = useState(false);
   return (
     <main className="relative min-h-[100dvh] overflow-hidden bg-[#f5f1e5] text-[#18243b]">
@@ -440,7 +452,7 @@ function ResultScreen({ entry, shots, best, timestamp, onRestart }: { entry: Ent
                 <div className="display-font mt-1 text-[clamp(6rem,16vw,10rem)] font-black leading-[.8] tracking-[-.04em] text-[#f65a38]" data-testid="text-best-discount">{best}%</div>
                 <div className="mt-3 text-sm font-bold uppercase tracking-[.17em] text-[#18243b]">off your next Quantum pick</div>
               </div>
-              <div className="mt-5 grid grid-cols-3 gap-2">{shots.map((shot, index) => <div className="rounded-xl bg-[#0d5366]/60 px-2 py-3 text-center" data-testid={`result-shot-${index + 1}`} key={`${shot}-${index}`}><div className="text-[9px] font-bold uppercase tracking-wider text-[#bce4e1]">Shot {index + 1}</div><div className="display-font text-2xl font-black text-[#fff8e9]">{shot}%</div></div>)}</div>
+              <div className="mt-5 grid grid-cols-3 gap-2">{shots.map((shot, index) => <div className="rounded-xl bg-[#0d5366]/60 px-2 py-3 text-center" data-testid={`result-shot-${index + 1}`} key={`${shot}-${index}`}><div className="text-[9px] font-bold uppercase tracking-wider text-[#bce4e1]">Shot {index + 1}</div><div className="display-font text-2xl font-black text-[#fff8e9]">{shot === null ? 'Miss' : `${shot}%`}</div></div>)}</div>
               <div className="mt-5 flex items-center justify-between border-t border-[#bce4e1]/25 pt-4 text-[10px] font-bold uppercase tracking-[.12em] text-[#bce4e1]"><span>Quantum.lk anniversary</span><span>Keep moving</span></div>
             </div>
           </div>
@@ -454,8 +466,9 @@ function ResultScreen({ entry, shots, best, timestamp, onRestart }: { entry: Ent
 function Home() {
   const [phase, setPhase] = useState<Session['phase']>('entry');
   const [entry, setEntry] = useState<Entry | null>(null);
-  const [shots, setShots] = useState<number[]>([]);
+  const [shots, setShots] = useState<ShotResult[]>([]);
   const [best, setBest] = useState(0);
+  const [hoopRewards, setHoopRewards] = useState<number[]>([]);
   const [timestamp, setTimestamp] = useState('');
   const [hydrated, setHydrated] = useState(false);
 
@@ -466,6 +479,7 @@ function Home() {
       setEntry(saved.entry);
       setShots(saved.shots ?? []);
       setBest(saved.best ?? 0);
+      setHoopRewards(saved.hoopRewards?.length === HOOP_REWARDS.length ? saved.hoopRewards : shuffleRewards());
       setTimestamp(saved.timestamp ?? new Date().toISOString());
     }
     setHydrated(true);
@@ -474,24 +488,25 @@ function Home() {
   useEffect(() => {
     if (!hydrated) return;
     if (entry || phase !== 'entry') {
-      const next: Session = { phase, entry, shots, best, timestamp: timestamp || new Date().toISOString() };
+      const next: Session = { phase, entry, shots, best, hoopRewards, timestamp: timestamp || new Date().toISOString() };
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
     }
-  }, [best, entry, hydrated, phase, shots, timestamp]);
+  }, [best, entry, hoopRewards, hydrated, phase, shots, timestamp]);
 
   function start(entryData: Entry) {
     const time = new Date().toISOString();
     setEntry(entryData);
     setShots([]);
     setBest(0);
+    setHoopRewards(shuffleRewards());
     setTimestamp(time);
     setPhase('game');
   }
 
-  function recordShot(reward: number) {
+  function recordShot(reward: ShotResult) {
     const next = [...shots, reward];
     setShots(next);
-    setBest(Math.max(best, reward));
+    if (reward !== null) setBest(Math.max(best, reward));
     if (next.length === MAX_SHOTS) setPhase('result');
   }
 
@@ -500,13 +515,14 @@ function Home() {
     setEntry(null);
     setShots([]);
     setBest(0);
+    setHoopRewards([]);
     setTimestamp('');
     setPhase('entry');
   }
 
   if (phase === 'entry' || !entry) return <EntryScreen onStart={start} />;
   if (phase === 'result') return <ResultScreen best={best} entry={entry} onRestart={restart} shots={shots} timestamp={timestamp} />;
-  return <GameScreen best={best} entry={entry} onRestart={restart} onShot={recordShot} shots={shots} />;
+  return <GameScreen best={best} entry={entry} hoopRewards={hoopRewards} onRestart={restart} onShot={recordShot} shots={shots} />;
 }
 
 function Router() {
