@@ -215,13 +215,17 @@ function Hoop({ index, active }: { index: number; active: boolean }) {
   );
 }
 
-function Basketball({ shooting, shotStyle }: { shooting: boolean; shotStyle?: CSSProperties }) {
+function Basketball({ aiming, aim, shooting, shotStyle }: { aiming: boolean; aim: { x: number; y: number }; shooting: boolean; shotStyle?: CSSProperties }) {
+  const pullX = aiming && !shooting ? (aim.x - .5) * 18 : 0;
+  const pullY = aiming && !shooting ? (aim.y - .72) * 18 : 0;
   return (
-    <div className={`absolute bottom-[8%] left-1/2 z-20 h-14 w-14 -ml-7 sm:h-[70px] sm:w-[70px] sm:-ml-[35px] ${shooting ? 'shot-animation' : 'animate-float-ball'}`} style={shotStyle}>
-      <div className="relative h-full w-full rounded-full border-[3px] border-[#9d3a25] bg-[#f65a38] shadow-[4px_6px_0_rgba(24,36,59,.35)]">
-        <span className="absolute left-1/2 top-[-4px] h-[calc(100%+8px)] w-[3px] -translate-x-1/2 rotate-[33deg] rounded-full bg-[#9d3a25]" />
-        <span className="absolute left-[-4px] top-[40%] h-[3px] w-[calc(100%+8px)] rotate-[-34deg] rounded-full bg-[#9d3a25]" />
-        <span className="absolute left-[9%] top-[24%] h-[3px] w-[83%] rotate-[62deg] rounded-full bg-[#9d3a25]" />
+    <div className="absolute bottom-[8%] left-1/2 z-20 h-14 w-14 -ml-7 transition-transform duration-150 sm:h-[70px] sm:w-[70px] sm:-ml-[35px]" style={{ transform: `translate3d(${pullX}px, ${pullY}px, 0)` }}>
+      <div className={`relative h-full w-full ${shooting ? 'shot-animation' : 'animate-float-ball'}`} style={shotStyle}>
+        <div className="relative h-full w-full rounded-full border-[3px] border-[#9d3a25] bg-[#f65a38] shadow-[4px_6px_0_rgba(24,36,59,.35)]">
+          <span className="absolute left-1/2 top-[-4px] h-[calc(100%+8px)] w-[3px] -translate-x-1/2 rotate-[33deg] rounded-full bg-[#9d3a25]" />
+          <span className="absolute left-[-4px] top-[40%] h-[3px] w-[calc(100%+8px)] rotate-[-34deg] rounded-full bg-[#9d3a25]" />
+          <span className="absolute left-[9%] top-[24%] h-[3px] w-[83%] rotate-[62deg] rounded-full bg-[#9d3a25]" />
+        </div>
       </div>
     </div>
   );
@@ -308,7 +312,8 @@ function GameCourt({
     }, 1080);
   }
 
-  const guideWidth = Math.max(20, Math.abs(aim.x - .5) * 82);
+  const pathEndX = aim.x * 100;
+  const pathEndY = aim.y * 100;
   return (
     <div
       aria-label="Basketball court. Press and drag from the ball to aim, then release to shoot."
@@ -330,19 +335,20 @@ function GameCourt({
         <Target size={14} /> Aim and release
       </div>
       {HOOP_POSITIONS.map((_position, index) => <Hoop active={activeHoop === index} index={index} key={index} />)}
-      <div className="absolute bottom-[18%] left-1/2 h-px -translate-x-1/2 transition-all duration-150" style={{ width: `${guideWidth}%`, transform: `translateX(-50%) rotate(${(aim.x - .5) * 18}deg)`, opacity: isAiming ? 1 : .55 }}>
-        <div className="absolute inset-x-0 top-0 border-t-2 border-dashed border-[#f8c842]" />
-        <div className="absolute -right-1 -top-1.5 h-3 w-3 rounded-full bg-[#f8c842] shadow-[0_0_0_4px_rgba(248,200,66,.2)]" />
-      </div>
+      <svg aria-hidden="true" className={`pointer-events-none absolute inset-0 z-[5] h-full w-full transition-opacity duration-200 ${isAiming ? 'opacity-100' : 'opacity-35'}`} preserveAspectRatio="none" viewBox="0 0 100 100">
+        <path d={`M 50 82 Q 50 56 ${pathEndX} ${pathEndY}`} fill="none" pathLength="1" stroke="#f8c842" strokeDasharray="0.025 0.02" strokeLinecap="round" strokeWidth="0.7" />
+        <circle cx={pathEndX} cy={pathEndY} fill="#f8c842" r={isAiming ? "1.6" : "1.15"} />
+        <circle cx={pathEndX} cy={pathEndY} fill="none" opacity={isAiming ? ".75" : ".35"} r={isAiming ? "3.5" : "2.5"} stroke="#f8c842" strokeWidth=".45" />
+      </svg>
       <div className={`absolute bottom-[18%] left-1/2 z-10 -translate-x-1/2 transition-opacity ${isAiming ? 'opacity-100' : 'opacity-0'}`}>
         <div className="flex items-center gap-2 whitespace-nowrap rounded-full bg-[#18243b] px-3 py-1.5 text-[10px] font-bold uppercase tracking-[.15em] text-[#fff8e9]">
-          <MoveHorizontal size={13} /> Release to shoot
+          <MoveHorizontal size={13} /> Hold · drag · release
         </div>
       </div>
       <Hand aiming={isAiming} />
-      <Basketball shotStyle={shotStyle} shooting={isShooting} />
+      <Basketball aim={aim} aiming={isAiming} shotStyle={shotStyle} shooting={isShooting} />
       <div className="absolute bottom-3 left-1/2 z-20 -translate-x-1/2 whitespace-nowrap text-[10px] font-bold uppercase tracking-[.15em] text-[#c8e8e4]/80 sm:bottom-4">
-        {isShooting ? 'On its way...' : isAiming ? 'Find your hoop' : 'Press the ball and drag'}
+        {isShooting ? 'On its way...' : isAiming ? 'Guide the path to a hoop' : 'Hold the ball and drag'}
       </div>
       {landed !== null ? (
         <div className="animate-enter-up absolute left-1/2 top-[49%] z-30 -translate-x-1/2 rounded-2xl border-2 border-[#18243b] bg-[#f8c842] px-5 py-3 text-center shadow-[5px_5px_0_#18243b]" data-testid="status-landed">
