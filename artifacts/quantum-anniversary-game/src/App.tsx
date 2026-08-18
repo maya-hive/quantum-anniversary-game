@@ -107,7 +107,7 @@ function Field({
         <span className="text-[#685bc7]">{icon}</span>
         <input
           aria-invalid={Boolean(error)}
-          className="h-12 min-w-0 flex-1 bg-transparent text-[15px] font-medium text-[#ffffff] outline-none placeholder:text-[#9a9398]"
+          className="h-12 min-w-0 flex-1 bg-transparent text-[15px] font-medium text-[#191919] outline-none placeholder:text-[#9a9398]"
           data-testid={testId}
           onChange={(event) => onChange(event.target.value)}
           placeholder={placeholder}
