@@ -1,9 +1,9 @@
-import { type CSSProperties, type FormEvent, type PointerEvent, type ReactNode, useEffect, useRef, useState } from 'react';
+import { type CSSProperties, type FormEvent, type PointerEvent, type ReactNode, useCallback, useEffect, useRef, useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
   ArrowRight,
   Check,
-  Download,
+  Copy,
   Mail,
   MoveHorizontal,
   Phone,
@@ -12,12 +12,12 @@ import {
   Target,
   Trophy,
   UserRound,
-  X,
 } from 'lucide-react';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { Route, Switch, Router as WouterRouter, useLocation } from 'wouter';
+import { completeCampaign, lookupCampaign } from '@workspace/api-client-react';
 
 const queryClient = new QueryClient();
 const STORAGE_KEY = 'quantum-hoops-anniversary-session';
@@ -28,12 +28,14 @@ const MAX_SHOTS = 3;
 type Entry = { name: string; email: string; phone: string };
 type ShotResult = number | null;
 type Session = {
-  phase: 'entry' | 'game' | 'result';
+  phase: 'entry' | 'game' | 'claiming' | 'result';
   entry: Entry | null;
   shots: ShotResult[];
   best: number;
   timestamp: string;
   hoopRewards: number[];
+  couponCode: string | null;
+  campaignCompleted: boolean;
 };
 
 function shuffleRewards() {
@@ -57,11 +59,11 @@ function readSession(): Session | null {
 function Logo() {
   return (
     <div className="flex items-center gap-2.5" data-testid="brand-quantum">
-      <div className="grid h-10 w-10 place-items-center rounded-[11px] bg-[#ea078c] text-[#ffffff] shadow-[4px_4px_0_#1b1b1b]">
+      <div className="grid h-10 w-10 place-items-center rounded-[11px] bg-[#ea078c] text-[#ffffff] shadow-[4px_4px_0_#ffffff]">
         <span className="display-font text-3xl font-black leading-none">Q</span>
       </div>
       <div className="leading-none">
-        <div className="display-font text-[24px] font-black tracking-[.08em] text-[#1b1b1b]">QUANTUM</div>
+        <div className="display-font text-[24px] font-black tracking-[.08em] text-[#ffffff]">QUANTUM</div>
         <div className="mt-1 text-[9px] font-bold tracking-[.3em] text-[#685bc7]">FITNESS GEAR</div>
       </div>
     </div>
@@ -70,8 +72,8 @@ function Logo() {
 
 function BrandMark({ inverted = false }: { inverted?: boolean }) {
   return (
-    <div className={`flex items-center gap-2 ${inverted ? 'text-[#ffffff]' : 'text-[#1b1b1b]'}`}>
-      <div className={`grid h-8 w-8 place-items-center rounded-lg ${inverted ? 'bg-[#ea078c]' : 'bg-[#1b1b1b]'} text-[#ffffff]`}>
+    <div className={`flex items-center gap-2 ${inverted ? 'text-[#ffffff]' : 'text-[#ffffff]'}`}>
+      <div className={`grid h-8 w-8 place-items-center rounded-lg ${inverted ? 'bg-[#ea078c]' : 'bg-[#ffffff]'} text-[#ffffff]`}>
         <span className="display-font text-2xl font-black leading-none">Q</span>
       </div>
       <span className="display-font text-lg font-black tracking-[.09em]">QUANTUM.LK</span>
@@ -100,12 +102,12 @@ function Field({
 }) {
   return (
     <label className="block">
-      <span className="mb-1.5 block text-[11px] font-bold uppercase tracking-[.16em] text-[#636464]">{label}</span>
+      <span className="mb-1.5 block text-[11px] font-bold uppercase tracking-[.16em] text-[#3f3f3f]">{label}</span>
       <span className={`flex items-center gap-3 rounded-xl border bg-[#ffffff] px-3.5 transition-colors ${error ? 'border-[#e9002b]' : 'border-[#e0d9dd] focus-within:border-[#685bc7]'}`}>
         <span className="text-[#685bc7]">{icon}</span>
         <input
           aria-invalid={Boolean(error)}
-          className="h-12 min-w-0 flex-1 bg-transparent text-[15px] font-medium text-[#1b1b1b] outline-none placeholder:text-[#9a9398]"
+          className="h-12 min-w-0 flex-1 bg-transparent text-[15px] font-medium text-[#ffffff] outline-none placeholder:text-[#9a9398]"
           data-testid={testId}
           onChange={(event) => onChange(event.target.value)}
           placeholder={placeholder}
@@ -118,31 +120,78 @@ function Field({
   );
 }
 
+function claimErrorMessage(error: unknown): string {
+  if (error && typeof error === 'object' && 'data' in error) {
+    const data = (error as { data?: { message?: string } }).data;
+    if (data?.message) return data.message;
+  }
+  if (error instanceof Error && error.message) return error.message;
+  return 'Something went wrong. Please try again.';
+}
+
 function EntryScreen({ onStart }: { onStart: (entry: Entry) => void }) {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [checking, setChecking] = useState(false);
+  const [lookupError, setLookupError] = useState<string | null>(null);
+  const [existingCoupon, setExistingCoupon] = useState<string | null | undefined>(undefined);
+  const [copied, setCopied] = useState(false);
 
-  function submit(event: FormEvent<HTMLFormElement>) {
+  function changeEmail(value: string) {
+    setEmail(value);
+    setExistingCoupon(undefined);
+    setLookupError(null);
+    setCopied(false);
+  }
+
+  async function copyExistingCoupon() {
+    if (!existingCoupon) return;
+    try {
+      await navigator.clipboard.writeText(existingCoupon);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1600);
+    } catch {
+      setCopied(false);
+    }
+  }
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const next: Record<string, string> = {};
     if (name.trim().length < 2) next.name = 'Tell us your name to join the game.';
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) next.email = 'Enter a valid email address.';
     if (!/^[+()\d\s-]{7,}$/.test(phone.trim())) next.phone = 'Enter a valid phone number.';
     setErrors(next);
-    if (Object.keys(next).length === 0) onStart({ name: name.trim(), email: email.trim(), phone: phone.trim() });
+    setLookupError(null);
+    if (Object.keys(next).length > 0) return;
+
+    setChecking(true);
+    try {
+      const result = await lookupCampaign({ email: email.trim() });
+      if (result.exists) {
+        setExistingCoupon(result.couponCode);
+        return;
+      }
+      setExistingCoupon(undefined);
+      onStart({ name: name.trim(), email: email.trim(), phone: phone.trim() });
+    } catch (error: unknown) {
+      setLookupError(claimErrorMessage(error));
+    } finally {
+      setChecking(false);
+    }
   }
 
   return (
-    <main className="relative min-h-[100dvh] overflow-hidden bg-[#f7f5f6] text-[#1b1b1b]">
+    <main className="relative min-h-[100dvh] overflow-hidden bg-[#1f1f1f] text-[#fbfbfb]">
       <div className="absolute -right-20 -top-24 h-72 w-72 rounded-full bg-[#685bc7] opacity-80" />
       <div className="absolute bottom-[-170px] left-[-100px] h-96 w-96 rounded-full border-[42px] border-[#685bc7]/10" />
       <header className="relative mx-auto flex max-w-7xl items-center justify-between px-5 py-5 sm:px-8 lg:px-12">
         <Logo />
         <div className="hidden items-center gap-2 text-right sm:flex">
-          <span className="text-[10px] font-bold uppercase tracking-[.2em] text-[#636464]">Celebrating</span>
-          <span className="display-font text-xl font-black text-[#ea078c]">20 YEARS</span>
+          <span className="text-[10px] font-bold uppercase tracking-[.2em] text-[#dfdfdf]">Celebrating</span>
+          <span className="display-font text-xl font-black text-[#ea078c]">28 YEARS</span>
         </div>
       </header>
 
@@ -152,44 +201,66 @@ function EntryScreen({ onStart }: { onStart: (entry: Entry) => void }) {
             <span className="h-px w-10 bg-[#ea078c]" />
             <span className="text-[11px] font-bold uppercase tracking-[.24em] text-[#ea078c]">Quantum anniversary game</span>
           </div>
-          <h1 className="display-font max-w-[700px] text-[clamp(4rem,10vw,8.7rem)] font-black uppercase leading-[.83] tracking-[-.045em]">
+          <h1 className="display-font max-w-[700px] text-[clamp(4rem,10vw,6rem)] font-black uppercase leading-[1] tracking-[-.045em]">
             Take your<br /><span className="text-[#ea078c]">best shot.</span>
           </h1>
-          <p className="mt-7 max-w-lg text-base leading-7 text-[#636464] sm:text-lg">
+          <p className="mt-7 max-w-lg text-base leading-7 text-[#dfdfdf] sm:text-lg">
             Three throws. Four hoops. One reward to take home. Step up and shoot for a Quantum anniversary discount.
           </p>
-          <div className="mt-10 flex flex-wrap items-center gap-x-8 gap-y-3 text-xs font-bold uppercase tracking-[.16em] text-[#636464]">
+          <div className="mt-10 flex flex-wrap items-center gap-x-8 gap-y-3 text-xs font-bold uppercase tracking-[.16em] text-[#dfdfdf]">
             <span className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-[#ea078c]" /> 3 chances</span>
             <span className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-[#685bc7]" /> up to 25% off</span>
           </div>
         </section>
 
         <section className="animate-enter-right relative mx-auto w-full max-w-[470px]">
-          <div className="absolute -right-3 -top-3 z-10 grid h-20 w-20 rotate-6 place-items-center rounded-full bg-[#685bc7] text-center text-white shadow-[4px_5px_0_#1b1b1b]">
+          <div className="absolute -right-3 -top-14 z-10 grid h-20 w-20 rotate-6 place-items-center rounded-full bg-[#685bc7] text-center text-white shadow-[4px_5px_0_#121212]">
             <span className="display-font text-[21px] font-black leading-[.8]">WIN<br />MORE</span>
           </div>
-          <div className="rounded-[28px] border border-[#e0d9dd] bg-[#ffffff] p-6 shadow-[11px_12px_0_#1b1b1b] sm:p-8">
+          <div className="rounded-[28px] border border-[#e0d9dd] bg-[#ffffff] p-6 shadow-[11px_12px_0_#121212] sm:p-8">
             <div className="mb-7 flex items-start justify-between">
               <div>
-                <p className="display-font text-3xl font-black uppercase leading-none">Get on court</p>
-                <p className="mt-2 text-sm text-[#636464]">Enter your details to unlock the game.</p>
+                <p className="display-font text-3xl font-black uppercase leading-none text-[#3f3f3f]">Get on court</p>
+                <p className="mt-2 text-sm text-[#3f3f3f]">Enter your details to unlock the game.</p>
               </div>
               <div className="rounded-full bg-[#fce4f2] px-3 py-1.5 text-[10px] font-bold uppercase tracking-[.14em] text-[#685bc7]">Free to play</div>
             </div>
             <form className="space-y-4" onSubmit={submit}>
               <Field error={errors.name} icon={<UserRound size={17} />} label="Your name" onChange={setName} placeholder="e.g. Ayesha Perera" testId="input-player-name" value={name} />
-              <Field error={errors.email} icon={<Mail size={17} />} label="Email address" onChange={setEmail} placeholder="you@example.com" testId="input-player-email" type="email" value={email} />
+              <Field error={errors.email} icon={<Mail size={17} />} label="Email address" onChange={changeEmail} placeholder="you@example.com" testId="input-player-email" type="email" value={email} />
               <Field error={errors.phone} icon={<Phone size={17} />} label="Phone number" onChange={setPhone} placeholder="+94 77 123 4567" testId="input-player-phone" type="tel" value={phone} />
-              <button className="group mt-3 flex h-14 w-full items-center justify-between rounded-xl bg-[#ea078c] px-5 text-left text-[#ffffff] shadow-[0_5px_0_#d1067d] transition-transform hover:-translate-y-0.5 active:translate-y-1 active:shadow-none" data-testid="button-start-game" type="submit">
-                <span>
-                  <span className="block display-font text-xl font-black uppercase leading-none">Enter the court</span>
-                  <span className="mt-1 block text-[10px] font-bold uppercase tracking-[.15em] text-[#ffd0ea]">Your details stay on this device</span>
-                </span>
-                <ArrowRight className="transition-transform group-hover:translate-x-1" size={23} />
-              </button>
+              {lookupError ? (
+                <p className="text-xs font-semibold text-[#e9002b]" data-testid="status-lookup-error">{lookupError}</p>
+              ) : null}
+              {existingCoupon !== undefined ? (
+                <div className="rounded-xl border border-[#e0d9dd] bg-[#f7f5f6] px-4 py-4" data-testid="panel-returning-player">
+                  <div className="text-[10px] font-bold uppercase tracking-[.18em] text-[#636464]">Already played</div>
+                  <p className="mt-2 text-sm font-medium text-[#3f3f3f]">
+                    {existingCoupon
+                      ? 'This email already claimed an anniversary coupon. Use it at checkout.'
+                      : 'This email already played the anniversary game.'}
+                  </p>
+                  {existingCoupon ? (
+                    <div className="mt-3 flex items-center justify-center gap-2">
+                      <code className="display-font text-2xl font-black tracking-[.08em] text-[#292929] uppercase" data-testid="text-existing-coupon">{existingCoupon}</code>
+                      <button aria-label="Copy coupon code" className="grid h-9 w-9 place-items-center rounded-full border border-[#e0d9dd] text-[#685bc7] hover:bg-[#ffffff]" data-testid="button-copy-existing-coupon" onClick={copyExistingCoupon} type="button">
+                        {copied ? <Check size={16} /> : <Copy size={16} />}
+                      </button>
+                    </div>
+                  ) : null}
+                </div>
+              ) : (
+                <button className="group mt-3 flex h-14 w-full items-center justify-between rounded-xl bg-[#ea078c] px-5 text-left text-[#ffffff] shadow-[0_5px_0_#d1067d] transition-transform hover:-translate-y-0.5 active:translate-y-1 active:shadow-none disabled:translate-y-0 disabled:opacity-70" data-testid="button-start-game" disabled={checking} type="submit">
+                  <span>
+                    <span className="block display-font text-xl font-black uppercase leading-none">{checking ? 'Checking…' : 'Enter the court'}</span>
+                    <span className="mt-1 block text-[10px] font-bold uppercase tracking-[.15em] text-[#ffd0ea]">One coupon per email</span>
+                  </span>
+                  <ArrowRight className="transition-transform group-hover:translate-x-1" size={23} />
+                </button>
+              )}
             </form>
           </div>
-          <div className="mt-5 flex items-center justify-center gap-2 text-center text-[10px] font-bold uppercase tracking-[.14em] text-[#636464]">
+          <div className="mt-5 flex items-center justify-center gap-2 text-center text-[10px] font-bold uppercase tracking-[.14em] text-[#dfdfdf]">
             <span className="h-1.5 w-1.5 rounded-full bg-[#685bc7]" /> Quantum.lk anniversary celebration
           </div>
         </section>
@@ -205,7 +276,7 @@ function Hoop({ index, active }: { index: number; active: boolean }) {
   return (
     <div className={`absolute top-[23%] -translate-x-1/2 transition-transform duration-300 ${active ? 'scale-110' : ''}`} style={{ left }} data-testid={`hoop-${index + 1}`}>
       <div className="relative h-[115px] w-[112px] sm:h-[144px] sm:w-[138px]">
-        <div className="absolute left-1/2 top-0 h-[53px] w-[72px] -translate-x-1/2 rounded border-[3px] border-[#f7f5f6]/80 bg-[#f5d0e8]/20 shadow-[2px_2px_0_#1b1b1b]/30 sm:h-[67px] sm:w-[91px]" />
+        <div className="absolute left-1/2 top-0 h-[53px] w-[72px] -translate-x-1/2 rounded border-[3px] border-[#f7f5f6]/80 bg-[#f5d0e8]/20 shadow-[2px_2px_0_#ffffff]/30 sm:h-[67px] sm:w-[91px]" />
         <div className="absolute left-1/2 top-[17px] h-[56px] w-[3px] -translate-x-1/2 bg-[#f7f5f6]/70 sm:h-[73px]" />
         <div className="absolute left-1/2 top-[47px] h-3 w-[61px] -translate-x-1/2 rounded-[50%] border-[4px] border-[#ea078c] bg-transparent sm:top-[61px] sm:w-[78px] sm:border-[5px]" style={{ borderColor: color }} />
         <div className={`hoop-net absolute left-1/2 top-[52px] h-[38px] w-[47px] -translate-x-1/2 border-x-[2px] border-b-[2px] border-dashed border-[#f7f5f6]/70 sm:top-[66px] sm:h-[49px] sm:w-[61px]`} />
@@ -317,7 +388,7 @@ function GameCourt({
   return (
     <div
       aria-label="Basketball court. Press and drag from the ball to aim, then release to shoot."
-      className="court-grain relative h-[min(70vh,640px)] min-h-[520px] w-full touch-none overflow-hidden rounded-[24px] border-[3px] border-[#1b1b1b] bg-[#550333] shadow-[7px_8px_0_#1b1b1b] sm:min-h-[600px] sm:rounded-[32px]"
+      className="court-grain relative h-[min(70vh,640px)] min-h-[520px] w-full touch-none overflow-hidden rounded-[24px] border-[3px] border-[#ffffff] bg-[#550333] shadow-[7px_8px_0_#ffffff] sm:min-h-[600px] sm:rounded-[32px]"
       data-testid="game-court"
       onPointerDown={startAim}
       onPointerMove={moveAim}
@@ -341,7 +412,7 @@ function GameCourt({
         <circle cx={pathEndX} cy={pathEndY} fill="none" opacity={isAiming ? ".75" : ".35"} r={isAiming ? "3.5" : "2.5"} stroke="#ea078c" strokeWidth=".45" />
       </svg>
       <div className={`absolute bottom-[18%] left-1/2 z-10 -translate-x-1/2 transition-opacity ${isAiming ? 'opacity-100' : 'opacity-0'}`}>
-        <div className="flex items-center gap-2 whitespace-nowrap rounded-full bg-[#1b1b1b] px-3 py-1.5 text-[10px] font-bold uppercase tracking-[.15em] text-[#ffffff]">
+        <div className="flex items-center gap-2 whitespace-nowrap rounded-full bg-[#ffffff] px-3 py-1.5 text-[10px] font-bold uppercase tracking-[.15em] text-[#ffffff]">
           <MoveHorizontal size={13} /> Hold · drag · release
         </div>
       </div>
@@ -351,7 +422,7 @@ function GameCourt({
         {isShooting ? 'On its way...' : isAiming ? 'Guide the path to a hoop' : 'Hold the ball and drag'}
       </div>
       {landed !== null ? (
-        <div className="animate-enter-up absolute left-1/2 top-[49%] z-30 -translate-x-1/2 rounded-2xl border-2 border-[#1b1b1b] bg-[#685bc7] px-5 py-3 text-center text-white shadow-[5px_5px_0_#1b1b1b]" data-testid="status-landed">
+        <div className="animate-enter-up absolute left-1/2 top-[49%] z-30 -translate-x-1/2 rounded-2xl border-2 border-[#ffffff] bg-[#685bc7] px-5 py-3 text-center text-white shadow-[5px_5px_0_#ffffff]" data-testid="status-landed">
           <div className="text-[10px] font-bold uppercase tracking-[.18em] text-white/80">{landed === 'miss' ? 'Just missed' : 'Reward unlocked'}</div>
           <div className="display-font text-4xl font-black leading-none">{landed === 'miss' ? 'No hoop' : `${landed}% OFF`}</div>
         </div>
@@ -363,7 +434,7 @@ function GameCourt({
 function Progress({ count }: { count: number }) {
   return (
     <div className="flex items-center gap-2" data-testid="status-attempts">
-      <span className="mr-1 text-[10px] font-bold uppercase tracking-[.15em] text-[#636464]">Shots</span>
+      <span className="mr-1 text-[10px] font-bold uppercase tracking-[.15em] text-[#dfdfdf]">Shots</span>
       {[0, 1, 2].map((attempt) => (
         <span className={`grid h-8 w-8 place-items-center rounded-full border-2 text-xs font-black ${attempt < count ? 'border-[#ea078c] bg-[#ea078c] text-[#ffffff]' : 'border-[#d5cfd3] bg-transparent text-[#8a8388]'}`} data-testid={`attempt-${attempt + 1}`} key={attempt}>
           {attempt < count ? <Check size={15} strokeWidth={3} /> : attempt + 1}
@@ -375,12 +446,12 @@ function Progress({ count }: { count: number }) {
 
 function GameScreen({ entry, shots, best, hoopRewards, onShot, onRestart }: { entry: Entry; shots: ShotResult[]; best: number; hoopRewards: number[]; onShot: (reward: ShotResult) => void; onRestart: () => void }) {
   return (
-    <main className="min-h-[100dvh] bg-[#f7f5f6] text-[#1b1b1b]">
+    <main className="min-h-[100dvh] bg-[#1f1f1f] text-[#fbfbfb]">
       <header className="mx-auto flex max-w-[1400px] items-center justify-between px-5 py-4 sm:px-8 lg:px-12">
         <BrandMark />
         <div className="flex items-center gap-4">
-          <div className="hidden text-right sm:block"><div className="text-[10px] font-bold uppercase tracking-[.18em] text-[#636464]">Player</div><div className="text-sm font-bold">{entry.name}</div></div>
-          <button aria-label="Start over with a new player" className="grid h-10 w-10 place-items-center rounded-full border border-[#e0d9dd] text-[#636464] transition-colors hover:bg-[#ffffff] hover:text-[#ea078c]" data-testid="button-restart-top" onClick={onRestart} type="button"><RotateCcw size={16} /></button>
+          <div className="hidden text-right sm:block"><div className="text-[10px] font-bold uppercase tracking-[.18em] text-[#dfdfdf]">Player</div><div className="text-sm font-bold">{entry.name}</div></div>
+          <button aria-label="Start over with a new player" className="grid h-10 w-10 place-items-center rounded-full border border-[#e0d9dd] text-[#dfdfdf] transition-colors hover:bg-[#ffffff] hover:text-[#ea078c]" data-testid="button-restart-top" onClick={onRestart} type="button"><RotateCcw size={16} /></button>
         </div>
       </header>
       <div className="mx-auto max-w-[1400px] px-5 pb-8 sm:px-8 lg:px-12 lg:pb-14">
@@ -391,11 +462,11 @@ function GameScreen({ entry, shots, best, hoopRewards, onShot, onRestart }: { en
           </div>
           <div className="flex items-center gap-4 rounded-xl bg-[#ffffff] px-3 py-2.5 shadow-[3px_3px_0_#e0d9dd]">
             <Progress count={shots.length} />
-            {best > 0 ? <div className="border-l border-[#e0d9dd] pl-4"><div className="text-[9px] font-bold uppercase tracking-[.14em] text-[#636464]">Best so far</div><div className="display-font text-2xl font-black text-[#685bc7]">{best}%</div></div> : null}
+            {best > 0 ? <div className="border-l border-[#e0d9dd] pl-4"><div className="text-[9px] font-bold uppercase tracking-[.14em] text-[#dfdfdf]">Best so far</div><div className="display-font text-2xl font-black text-[#685bc7]">{best}%</div></div> : null}
           </div>
         </div>
         <GameCourt hoopRewards={hoopRewards} onShot={onShot} shots={shots} />
-        <div className="mt-5 flex items-center justify-between gap-3 text-xs text-[#636464]">
+        <div className="mt-5 flex items-center justify-between gap-3 text-xs text-[#dfdfdf]">
           <span className="flex items-center gap-2"><span className="grid h-6 w-6 place-items-center rounded-full bg-[#685bc7] text-white"><Target size={13} /></span> Hit a hoop to reveal its hidden reward.</span>
           <span className="hidden font-bold uppercase tracking-[.12em] sm:block">{MAX_SHOTS - shots.length} {MAX_SHOTS - shots.length === 1 ? 'chance' : 'chances'} left</span>
         </div>
@@ -405,58 +476,147 @@ function GameScreen({ entry, shots, best, hoopRewards, onShot, onRestart }: { en
 }
 
 function Confetti() {
-  return <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">{Array.from({ length: 15 }).map((_, index) => <span className="confetti-piece absolute h-3 w-2" key={index} style={{ background: ['#ea078c', '#685bc7', '#9f005f', '#1b1b1b'][index % 4], left: `${(index * 37) % 100}%`, top: `${8 + ((index * 23) % 28)}%`, transform: `rotate(${index * 27}deg)`, animationDelay: `${index * 30}ms` }} />)}</div>;
+  return <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">{Array.from({ length: 15 }).map((_, index) => <span className="confetti-piece absolute h-3 w-2" key={index} style={{ background: ['#ea078c', '#685bc7', '#9f005f', '#ffffff'][index % 4], left: `${(index * 37) % 100}%`, top: `${8 + ((index * 23) % 28)}%`, transform: `rotate(${index * 27}deg)`, animationDelay: `${index * 30}ms` }} />)}</div>;
 }
 
-function ExportPanel({ entry, shots, best, timestamp, onClose }: { entry: Entry; shots: ShotResult[]; best: number; timestamp: string; onClose: () => void }) {
-  function download() {
-    const cells = [entry.name, entry.email, entry.phone, shots[0] ?? '', shots[1] ?? '', shots[2] ?? '', best, timestamp];
-    const csv = ['player_name,email,phone,shot_1_discount,shot_2_discount,shot_3_discount,best_discount,timestamp', cells.map((cell) => `"${String(cell).replaceAll('"', '""')}"`).join(',')].join('\n');
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement('a');
-    anchor.href = url;
-    anchor.download = `quantum-hoops-${entry.name.toLowerCase().replace(/[^a-z0-9]+/g, '-') || 'player'}.csv`;
-    anchor.click();
-    URL.revokeObjectURL(url);
+const claimCache = new Map<string, Promise<string | null>>();
+
+function claimCampaignRound(entry: Entry, shots: ShotResult[], best: number, timestamp: string): Promise<string | null> {
+  const key = `${entry.email}|${timestamp}`;
+  const cached = claimCache.get(key);
+  if (cached) return cached;
+  const request = completeCampaign({
+    name: entry.name,
+    email: entry.email,
+    phone: entry.phone,
+    shots: [shots[0] ?? null, shots[1] ?? null, shots[2] ?? null],
+    best,
+    timestamp,
+  })
+    .then((result) => result.couponCode)
+    .catch((error: unknown) => {
+      claimCache.delete(key);
+      throw error;
+    });
+  claimCache.set(key, request);
+  return request;
+}
+
+function ClaimingScreen({
+  entry,
+  shots,
+  best,
+  timestamp,
+  onSuccess,
+}: {
+  entry: Entry;
+  shots: ShotResult[];
+  best: number;
+  timestamp: string;
+  onSuccess: (couponCode: string | null) => void;
+}) {
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  function submit() {
+    setErrorMessage(null);
+    claimCampaignRound(entry, shots, best, timestamp)
+      .then(onSuccess)
+      .catch((error: unknown) => setErrorMessage(claimErrorMessage(error)));
   }
+
+  useEffect(() => {
+    let cancelled = false;
+    claimCampaignRound(entry, shots, best, timestamp)
+      .then((code) => {
+        if (!cancelled) onSuccess(code);
+      })
+      .catch((error: unknown) => {
+        if (!cancelled) setErrorMessage(claimErrorMessage(error));
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [best, entry, onSuccess, shots, timestamp]);
+
   return (
-    <div className="animate-enter-up fixed inset-0 z-50 flex items-end justify-center bg-[#1b1b1b]/45 p-3 sm:items-center sm:p-6" role="dialog">
-      <div className="relative w-full max-w-[510px] rounded-[24px] border-2 border-[#1b1b1b] bg-[#ffffff] p-6 shadow-[7px_8px_0_#1b1b1b] sm:p-8">
-        <button aria-label="Close export panel" className="absolute right-4 top-4 grid h-8 w-8 place-items-center rounded-full text-[#636464] hover:bg-[#f2eef1]" data-testid="button-close-export" onClick={onClose} type="button"><X size={17} /></button>
-        <div className="mb-6 flex items-start gap-3"><div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-[#fce4f2] text-[#685bc7]"><Download size={20} /></div><div><h2 className="display-font text-3xl font-black uppercase leading-none">Campaign export</h2><p className="mt-2 max-w-sm text-sm leading-5 text-[#636464]">Google Sheets is not connected yet. Download this round as a CSV for campaign records.</p></div></div>
-        <div className="mb-6 grid grid-cols-2 gap-2 rounded-xl bg-[#f7f5f6] p-3 text-sm"><div><span className="block text-[10px] font-bold uppercase tracking-wider text-[#636464]">Player</span><span className="font-bold">{entry.name}</span></div><div><span className="block text-[10px] font-bold uppercase tracking-wider text-[#636464]">Best reward</span><span className="font-bold text-[#ea078c]">{best}% off</span></div></div>
-        <button className="flex h-13 w-full items-center justify-center gap-2 rounded-xl bg-[#1b1b1b] px-5 py-3.5 text-sm font-bold text-[#ffffff] transition-transform hover:-translate-y-0.5 active:translate-y-0" data-testid="button-download-results" onClick={download} type="button"><Download size={17} /> Download results CSV</button>
+    <main className="relative grid min-h-[100dvh] place-items-center overflow-hidden bg-[#1f1f1f] px-5 text-[#fbfbfb]">
+      <div className="animate-enter-up w-full max-w-md rounded-[28px] border-2 border-[#ffffff] bg-[#550333] p-8 text-center shadow-[8px_9px_0_#ffffff]">
+        <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-[#685bc7] px-3 py-2 text-[10px] font-bold uppercase tracking-[.16em] text-white">
+          <Trophy size={14} /> Claiming reward
+        </div>
+        {errorMessage ? (
+          <>
+            <h1 className="display-font text-4xl font-black uppercase leading-none">Hold up</h1>
+            <p className="mt-4 text-sm leading-6 text-[#f5c4e0]" data-testid="status-claim-error">{errorMessage}</p>
+            <button
+              className="mt-7 inline-flex items-center gap-2 rounded-[3px] bg-[#ea078c] px-5 py-3.5 text-sm font-semibold uppercase text-white transition-colors hover:bg-[#550333]"
+              data-testid="button-retry-claim"
+              onClick={submit}
+              type="button"
+            >
+              <RotateCcw size={16} /> Retry
+            </button>
+          </>
+        ) : (
+          <>
+            <h1 className="display-font text-4xl font-black uppercase leading-none">Almost there</h1>
+            <p className="mt-4 text-sm leading-6 text-[#f5c4e0]" data-testid="status-claiming">
+              {best > 0 ? 'Generating your anniversary coupon…' : 'Saving your round…'}
+            </p>
+          </>
+        )}
       </div>
-    </div>
+    </main>
   );
 }
 
-function ResultScreen({ entry, shots, best, timestamp, onRestart }: { entry: Entry; shots: ShotResult[]; best: number; timestamp: string; onRestart: () => void }) {
-  const [exportOpen, setExportOpen] = useState(false);
+function ResultScreen({ entry, shots, best, couponCode, onRestart }: { entry: Entry; shots: ShotResult[]; best: number; couponCode: string | null; onRestart: () => void }) {
+  const [copied, setCopied] = useState(false);
+
+  async function copyCoupon() {
+    if (!couponCode) return;
+    try {
+      await navigator.clipboard.writeText(couponCode);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1600);
+    } catch {
+      setCopied(false);
+    }
+  }
+
   return (
-    <main className="relative min-h-[100dvh] overflow-hidden bg-[#f7f5f6] text-[#1b1b1b]">
+    <main className="relative min-h-[100dvh] overflow-hidden bg-[#1f1f1f] text-[#fbfbfb]">
       <Confetti />
-      <header className="relative z-10 mx-auto flex max-w-7xl items-center justify-between px-5 py-5 sm:px-8 lg:px-12"><BrandMark /><button className="flex items-center gap-2 text-xs font-bold uppercase tracking-[.12em] text-[#636464] transition-colors hover:text-[#ea078c]" data-testid="button-new-player" onClick={onRestart} type="button"><RotateCcw size={15} /> New player</button></header>
+      <header className="relative z-10 mx-auto flex max-w-7xl items-center justify-between px-5 py-5 sm:px-8 lg:px-12"><BrandMark /><button className="flex items-center gap-2 text-xs font-bold uppercase tracking-[.12em] text-[#dfdfdf] transition-colors hover:text-[#ea078c]" data-testid="button-new-player" onClick={onRestart} type="button"><RotateCcw size={15} /> New player</button></header>
       <div className="relative z-10 mx-auto grid max-w-6xl items-center gap-10 px-5 pb-12 pt-10 sm:px-8 lg:grid-cols-[.95fr_1.05fr] lg:gap-20 lg:pb-24 lg:pt-16">
         <section className="animate-enter-up">
           <div className="mb-6 inline-flex items-center gap-2 rounded-full bg-[#685bc7] px-3 py-2 text-[10px] font-bold uppercase tracking-[.16em] text-white"><Trophy size={14} /> Final whistle</div>
-          <h1 className="display-font text-[clamp(4.4rem,10vw,8rem)] font-black uppercase leading-[.8] tracking-[-.04em]">That’s a<br /><span className="text-[#ea078c]">wrap.</span></h1>
-          <p className="mt-7 max-w-md text-lg leading-7 text-[#636464]">Nice shooting, <strong className="text-[#1b1b1b]">{entry.name}</strong>. Your best landed reward is ready to use.</p>
+          <h1 className="display-font text-[clamp(4rem,10vw,6rem)] font-black uppercase leading-[1] tracking-[-.04em]">That’s a<br /><span className="text-[#ea078c]">wrap.</span></h1>
+          <p className="mt-7 max-w-md text-lg leading-7 text-[#dfdfdf]">Nice shooting, <strong className="text-[#ffffff]">{entry.name}</strong>. {couponCode ? 'Your coupon is ready to use at checkout.' : 'Your best landed reward is ready to use.'}</p>
           <div className="mt-9 flex flex-wrap gap-3">
             <button className="flex items-center gap-2 rounded-xl bg-[#ea078c] px-5 py-3.5 text-sm font-bold text-[#ffffff] shadow-[0_4px_0_#d1067d] transition-transform hover:-translate-y-0.5 active:translate-y-1 active:shadow-none" data-testid="button-play-again" onClick={onRestart} type="button"><RotateCcw size={16} /> Play again</button>
-            <button className="flex items-center gap-2 rounded-xl border-2 border-[#1b1b1b] bg-transparent px-5 py-3 text-sm font-bold text-[#1b1b1b] transition-colors hover:bg-[#ffffff]" data-testid="button-open-export" onClick={() => setExportOpen(true)} type="button"><Download size={16} /> Campaign export</button>
           </div>
         </section>
         <section className="animate-enter-right">
-          <div className="relative overflow-hidden rounded-[28px] border-2 border-[#1b1b1b] bg-[#550333] p-5 shadow-[8px_9px_0_#1b1b1b] sm:p-7">
+          <div className="relative overflow-hidden rounded-[28px] border-2 border-[#ffffff] bg-[#550333] p-5 shadow-[8px_9px_0_#ffffff] sm:p-7">
             <div className="absolute -right-16 -top-16 h-48 w-48 rounded-full border-[23px] border-[#f5c4e0]/20" />
             <div className="relative">
               <div className="flex items-center justify-between text-[#fce4f2]"><span className="text-[10px] font-bold uppercase tracking-[.2em]">Your anniversary score</span><Sparkles size={18} /></div>
               <div className="mt-5 rounded-2xl bg-[#ffffff] px-5 py-6 text-center sm:px-8 sm:py-9">
-                <div className="text-[11px] font-bold uppercase tracking-[.2em] text-[#636464]">Best discount</div>
+                <div className="text-[11px] font-bold uppercase tracking-[.2em] text-[#4d4d4d]">Best discount</div>
                 <div className="display-font mt-1 text-[clamp(6rem,16vw,10rem)] font-black leading-[.8] tracking-[-.04em] text-[#ea078c]" data-testid="text-best-discount">{best}%</div>
-                <div className="mt-3 text-sm font-bold uppercase tracking-[.17em] text-[#1b1b1b]">off your next Quantum pick</div>
+                <div className="mt-3 text-sm font-bold uppercase tracking-[.17em] text-[#4d4d4d]">off your next Quantum pick</div>
+                {couponCode ? (
+                  <div className="mt-6 rounded-xl border border-[#e0d9dd] bg-[#f7f5f6] px-4 py-4">
+                    <div className="text-[10px] font-bold uppercase tracking-[.18em] text-[#636464]">Use at checkout</div>
+                    <div className="mt-2 flex items-center justify-center gap-2">
+                      <code className="display-font text-3xl font-black tracking-[.08em] text-[#292929] uppercase" data-testid="text-coupon-code">{couponCode}</code>
+                      <button aria-label="Copy coupon code" className="grid h-9 w-9 place-items-center rounded-full border border-[#e0d9dd] text-[#685bc7] hover:bg-[#ffffff]" data-testid="button-copy-coupon" onClick={copyCoupon} type="button">
+                        {copied ? <Check size={16} /> : <Copy size={16} />}
+                      </button>
+                    </div>
+                  </div>
+                ) : null}
               </div>
               <div className="mt-5 grid grid-cols-3 gap-2">{shots.map((shot, index) => <div className="rounded-xl bg-[#410020]/60 px-2 py-3 text-center" data-testid={`result-shot-${index + 1}`} key={`${shot}-${index}`}><div className="text-[9px] font-bold uppercase tracking-wider text-[#f5c4e0]">Shot {index + 1}</div><div className="display-font text-2xl font-black text-[#ffffff]">{shot === null ? 'Miss' : `${shot}%`}</div></div>)}</div>
               <div className="mt-5 flex items-center justify-between border-t border-[#f5c4e0]/25 pt-4 text-[10px] font-bold uppercase tracking-[.12em] text-[#f5c4e0]"><span>Quantum.lk anniversary</span><span>Keep moving</span></div>
@@ -464,7 +624,6 @@ function ResultScreen({ entry, shots, best, timestamp, onRestart }: { entry: Ent
           </div>
         </section>
       </div>
-      {exportOpen ? <ExportPanel best={best} entry={entry} onClose={() => setExportOpen(false)} shots={shots} timestamp={timestamp} /> : null}
     </main>
   );
 }
@@ -476,17 +635,23 @@ function Home() {
   const [best, setBest] = useState(0);
   const [hoopRewards, setHoopRewards] = useState<number[]>([]);
   const [timestamp, setTimestamp] = useState('');
+  const [couponCode, setCouponCode] = useState<string | null>(null);
+  const [campaignCompleted, setCampaignCompleted] = useState(false);
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
     const saved = readSession();
     if (saved?.entry) {
-      setPhase(saved.phase);
+      const completed = Boolean(saved.campaignCompleted);
+      const restoredPhase = saved.phase === 'result' && !completed ? 'claiming' : saved.phase;
+      setPhase(restoredPhase);
       setEntry(saved.entry);
       setShots(saved.shots ?? []);
       setBest(saved.best ?? 0);
       setHoopRewards(saved.hoopRewards?.length === HOOP_REWARDS.length ? saved.hoopRewards : shuffleRewards());
       setTimestamp(saved.timestamp ?? new Date().toISOString());
+      setCouponCode(saved.couponCode ?? null);
+      setCampaignCompleted(completed);
     }
     setHydrated(true);
   }, []);
@@ -494,10 +659,19 @@ function Home() {
   useEffect(() => {
     if (!hydrated) return;
     if (entry || phase !== 'entry') {
-      const next: Session = { phase, entry, shots, best, hoopRewards, timestamp: timestamp || new Date().toISOString() };
+      const next: Session = {
+        phase,
+        entry,
+        shots,
+        best,
+        hoopRewards,
+        timestamp: timestamp || new Date().toISOString(),
+        couponCode,
+        campaignCompleted,
+      };
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
     }
-  }, [best, entry, hoopRewards, hydrated, phase, shots, timestamp]);
+  }, [best, campaignCompleted, couponCode, entry, hoopRewards, hydrated, phase, shots, timestamp]);
 
   function start(entryData: Entry) {
     const time = new Date().toISOString();
@@ -506,6 +680,8 @@ function Home() {
     setBest(0);
     setHoopRewards(shuffleRewards());
     setTimestamp(time);
+    setCouponCode(null);
+    setCampaignCompleted(false);
     setPhase('game');
   }
 
@@ -513,8 +689,14 @@ function Home() {
     const next = [...shots, reward];
     setShots(next);
     if (reward !== null) setBest(Math.max(best, reward));
-    if (next.length === MAX_SHOTS) setPhase('result');
+    if (next.length === MAX_SHOTS) setPhase('claiming');
   }
+
+  const finishClaim = useCallback((code: string | null) => {
+    setCouponCode(code);
+    setCampaignCompleted(true);
+    setPhase('result');
+  }, []);
 
   function restart() {
     window.localStorage.removeItem(STORAGE_KEY);
@@ -523,11 +705,19 @@ function Home() {
     setBest(0);
     setHoopRewards([]);
     setTimestamp('');
+    setCouponCode(null);
+    setCampaignCompleted(false);
     setPhase('entry');
   }
 
   if (phase === 'entry' || !entry) return <EntryScreen onStart={start} />;
-  if (phase === 'result') return <ResultScreen best={best} entry={entry} onRestart={restart} shots={shots} timestamp={timestamp} />;
+  if (phase === 'claiming') {
+    if (campaignCompleted) {
+      return <ResultScreen best={best} couponCode={couponCode} entry={entry} onRestart={restart} shots={shots} />;
+    }
+    return <ClaimingScreen best={best} entry={entry} onSuccess={finishClaim} shots={shots} timestamp={timestamp} />;
+  }
+  if (phase === 'result') return <ResultScreen best={best} couponCode={couponCode} entry={entry} onRestart={restart} shots={shots} />;
   return <GameScreen best={best} entry={entry} hoopRewards={hoopRewards} onRestart={restart} onShot={recordShot} shots={shots} />;
 }
 
@@ -548,7 +738,7 @@ function RoutedErrorBoundary({ children }: { children: ReactNode }) {
 }
 
 function NotFound() {
-  return <main className="grid min-h-[100dvh] place-items-center bg-[#f7f5f6] p-6 text-center"><div><BrandMark /><h1 className="display-font mt-10 text-6xl font-black uppercase">Off court</h1><p className="mt-3 text-[#636464]">This page does not exist.</p></div></main>;
+  return <main className="grid min-h-[100dvh] place-items-center bg-[#1f1f1f] text-[#fbfbfb] p-6 text-center"><div><BrandMark /><h1 className="display-font mt-10 text-6xl font-black uppercase">Off court</h1><p className="mt-3 text-[#dfdfdf]">This page does not exist.</p></div></main>;
 }
 
 function App() {

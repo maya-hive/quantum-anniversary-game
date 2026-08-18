@@ -63,6 +63,26 @@ export default defineConfig({
     ...(port !== undefined ? { port, strictPort: true } : {}),
     host: '0.0.0.0',
     allowedHosts: true,
+    proxy: {
+      '/api': {
+        target: 'http://127.0.0.1:8080',
+        changeOrigin: true,
+        configure: (proxy) => {
+          proxy.on('error', (_err, _req, res) => {
+            const socket = res as { headersSent?: boolean; writeHead: (status: number, headers: Record<string, string>) => void; end: (body: string) => void };
+            if (!socket.headersSent) {
+              socket.writeHead(503, { 'Content-Type': 'application/json' });
+              socket.end(
+                JSON.stringify({
+                  message:
+                    'API server is not running on port 8080. Start it with PORT=8080 pnpm --filter @workspace/api-server run dev',
+                }),
+              );
+            }
+          });
+        },
+      },
+    },
     fs: {
       strict: true,
     },

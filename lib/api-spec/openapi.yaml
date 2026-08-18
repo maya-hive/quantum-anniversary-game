@@ -10,6 +10,8 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: campaign
+    description: Anniversary game campaign operations
 paths:
   /healthz:
     get:
@@ -24,6 +26,74 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /campaign/lookup:
+    post:
+      operationId: lookupCampaign
+      tags: [campaign]
+      summary: Check if a player already completed a round
+      description: >
+        Looks up a normalized email against the campaign Google Sheet cache.
+        Returns only exists and couponCode. Does not return other player fields.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LookupCampaignRequest"
+      responses:
+        "200":
+          description: Lookup result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LookupCampaignResult"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+        "502":
+          description: Google Sheets unavailable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+  /campaign/complete:
+    post:
+      operationId: completeCampaign
+      tags: [campaign]
+      summary: Complete a campaign round
+      description: >
+        If the email already played, returns the stored coupon and skips WordPress
+        and Google Sheets. Otherwise generates a WordPress coupon when the best
+        discount is greater than 0, appends the player to the campaign Google Sheet,
+        and returns the coupon code.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CompleteCampaignRequest"
+      responses:
+        "200":
+          description: Campaign round recorded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CampaignCouponResult"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+        "502":
+          description: Coupon provider or Google Sheets failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
 components:
   schemas:
     HealthStatus:
@@ -33,4 +103,60 @@ components:
           type: string
       required:
         - status
-
+    LookupCampaignRequest:
+      type: object
+      properties:
+        email:
+          type: string
+      required:
+        - email
+    LookupCampaignResult:
+      type: object
+      properties:
+        exists:
+          type: boolean
+        couponCode:
+          type: ["string", "null"]
+      required:
+        - exists
+        - couponCode
+    CompleteCampaignRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        shots:
+          type: array
+          minItems: 3
+          maxItems: 3
+          items:
+            type: ["number", "null"]
+        best:
+          type: number
+        timestamp:
+          type: string
+      required:
+        - name
+        - email
+        - phone
+        - shots
+        - best
+        - timestamp
+    CampaignCouponResult:
+      type: object
+      properties:
+        couponCode:
+          type: ["string", "null"]
+      required:
+        - couponCode
+    ErrorMessage:
+      type: object
+      properties:
+        message:
+          type: string
+      required:
+        - message

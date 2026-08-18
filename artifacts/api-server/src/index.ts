@@ -1,3 +1,4 @@
+import "./lib/load-env";
 import app from "./app";
 import { logger } from "./lib/logger";
 
@@ -15,7 +16,7 @@ if (Number.isNaN(port) || port <= 0) {
   throw new Error(`Invalid PORT value: "${rawPort}"`);
 }
 
-app.listen(port, (err) => {
+app.listen(port, "0.0.0.0", (err) => {
   if (err) {
     logger.error({ err }, "Error listening on port");
     process.exit(1);
