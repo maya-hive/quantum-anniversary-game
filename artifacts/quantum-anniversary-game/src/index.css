@@ -107,6 +107,11 @@
   from { opacity: 0; transform: translateY(-12px) rotate(0deg); }
   to { opacity: 1; transform: translateY(0) rotate(12deg); }
 }
+@keyframes device-to-landscape {
+  0%, 15% { transform: rotate(0deg); }
+  45%, 70% { transform: rotate(90deg); }
+  100% { transform: rotate(0deg); }
+}
 
 .animate-enter-up { animation: enter-up .55s cubic-bezier(.2,.8,.2,1) both; }
 .animate-enter-right { animation: enter-right .55s cubic-bezier(.2,.8,.2,1) both; }
@@ -124,6 +129,10 @@
 .hoop-net { transform-origin: top center; animation: net-swish .55s ease-out; }
 .shot-animation { animation: shoot-ball 1.05s cubic-bezier(.18,.82,.25,1) forwards; }
 .confetti-piece { animation: confetti-in .45s ease-out both; }
+.device-to-landscape {
+  transform-origin: center;
+  animation: device-to-landscape 1.6s ease-in-out infinite;
+}
 .display-font { font-family: var(--app-font-display); }
 .no-select { user-select: none; -webkit-user-select: none; }
 

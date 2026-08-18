@@ -47,6 +47,55 @@ function shuffleRewards() {
   return shuffled;
 }
 
+function usePortraitPhoneOrTablet() {
+  const [show, setShow] = useState(false);
+
+  useEffect(() => {
+    const landscape = window.matchMedia('(orientation: landscape)');
+    const coarse = window.matchMedia('(pointer: coarse)');
+    const compact = window.matchMedia('(max-width: 1024px)');
+
+    function update() {
+      setShow(!landscape.matches && (coarse.matches || compact.matches));
+    }
+
+    update();
+    landscape.addEventListener('change', update);
+    coarse.addEventListener('change', update);
+    compact.addEventListener('change', update);
+    return () => {
+      landscape.removeEventListener('change', update);
+      coarse.removeEventListener('change', update);
+      compact.removeEventListener('change', update);
+    };
+  }, []);
+
+  return show;
+}
+
+function LandscapeOverlay() {
+  return (
+    <div
+      aria-live="polite"
+      className="pointer-events-auto fixed inset-0 z-[80] grid place-items-center bg-[#1f1f1f] px-6 text-center text-[#fbfbfb]"
+      data-testid="overlay-landscape"
+      role="dialog"
+      aria-labelledby="landscape-heading"
+      aria-modal="true"
+    >
+      <div className="flex max-w-sm flex-col items-center">
+        <svg aria-hidden="true" className="device-to-landscape h-28 w-28" fill="none" viewBox="0 0 80 120">
+          <rect height="112" rx="14" stroke="#ea078c" strokeWidth="4" width="64" x="8" y="4" />
+          <rect fill="#685bc7" height="6" rx="3" width="22" x="29" y="12" />
+          <circle cx="40" cy="104" fill="#685bc7" r="5" />
+        </svg>
+        <h2 className="display-font mt-8 text-4xl font-black uppercase leading-none" id="landscape-heading">Turn your device</h2>
+        <p className="mt-4 text-sm font-medium leading-6 text-[#dfdfdf]">This game is best played in landscape. Rotate your phone or tablet to continue.</p>
+      </div>
+    </div>
+  );
+}
+
 function readSession(): Session | null {
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
@@ -143,6 +192,16 @@ function EntryScreen({ onStart }: { onStart: (entry: Entry) => void }) {
     setEmail(value);
     setExistingCoupon(undefined);
     setLookupError(null);
+    setCopied(false);
+  }
+
+  function resetForm() {
+    setName('');
+    setEmail('');
+    setPhone('');
+    setErrors({});
+    setLookupError(null);
+    setExistingCoupon(undefined);
     setCopied(false);
   }
 
@@ -248,6 +307,14 @@ function EntryScreen({ onStart }: { onStart: (entry: Entry) => void }) {
                       </button>
                     </div>
                   ) : null}
+                  <button
+                    className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-[#e0d9dd] bg-[#ffffff] px-4 py-3 text-sm font-bold uppercase tracking-[.08em] text-[#3f3f3f] transition-colors hover:border-[#685bc7] hover:text-[#685bc7]"
+                    data-testid="button-reset-entry"
+                    onClick={resetForm}
+                    type="button"
+                  >
+                    <RotateCcw size={16} /> Try another email
+                  </button>
                 </div>
               ) : (
                 <button className="group mt-3 flex h-14 w-full items-center justify-between rounded-xl bg-[#ea078c] px-5 text-left text-[#ffffff] shadow-[0_5px_0_#d1067d] transition-transform hover:-translate-y-0.5 active:translate-y-1 active:shadow-none disabled:translate-y-0 disabled:opacity-70" data-testid="button-start-game" disabled={checking} type="submit">
@@ -388,7 +455,7 @@ function GameCourt({
   return (
     <div
       aria-label="Basketball court. Press and drag from the ball to aim, then release to shoot."
-      className="court-grain relative h-[min(70vh,640px)] min-h-[520px] w-full touch-none overflow-hidden rounded-[24px] border-[3px] border-[#ffffff] bg-[#550333] shadow-[7px_8px_0_#ffffff] sm:min-h-[600px] sm:rounded-[32px]"
+      className="court-grain relative h-full min-h-0 w-full touch-none overflow-hidden rounded-[24px] border-[3px] border-[#ffffff] bg-[#550333] shadow-[7px_8px_0_#ffffff] sm:rounded-[32px]"
       data-testid="game-court"
       onPointerDown={startAim}
       onPointerMove={moveAim}
@@ -418,7 +485,7 @@ function GameCourt({
       </div>
       <Hand aiming={isAiming} />
       <Basketball aim={aim} aiming={isAiming} shotStyle={shotStyle} shooting={isShooting} />
-      <div className="absolute bottom-3 left-1/2 z-20 -translate-x-1/2 whitespace-nowrap text-[10px] font-bold uppercase tracking-[.15em] text-[#f5d0e8]/80 sm:bottom-4">
+      <div className="absolute bottom-3 left-1/2 z-20 -translate-x-1/2 whitespace-nowrap text-[10px] font-bold uppercase tracking-[.15em] text-[#ffffff]/100 sm:bottom-4">
         {isShooting ? 'On its way...' : isAiming ? 'Guide the path to a hoop' : 'Hold the ball and drag'}
       </div>
       {landed !== null ? (
@@ -434,7 +501,7 @@ function GameCourt({
 function Progress({ count }: { count: number }) {
   return (
     <div className="flex items-center gap-2" data-testid="status-attempts">
-      <span className="mr-1 text-[10px] font-bold uppercase tracking-[.15em] text-[#dfdfdf]">Shots</span>
+      <span className="mr-1 text-[10px] font-bold uppercase tracking-[.15em] text-[#131212]">Shots</span>
       {[0, 1, 2].map((attempt) => (
         <span className={`grid h-8 w-8 place-items-center rounded-full border-2 text-xs font-black ${attempt < count ? 'border-[#ea078c] bg-[#ea078c] text-[#ffffff]' : 'border-[#d5cfd3] bg-transparent text-[#8a8388]'}`} data-testid={`attempt-${attempt + 1}`} key={attempt}>
           {attempt < count ? <Check size={15} strokeWidth={3} /> : attempt + 1}
@@ -446,27 +513,29 @@ function Progress({ count }: { count: number }) {
 
 function GameScreen({ entry, shots, best, hoopRewards, onShot, onRestart }: { entry: Entry; shots: ShotResult[]; best: number; hoopRewards: number[]; onShot: (reward: ShotResult) => void; onRestart: () => void }) {
   return (
-    <main className="min-h-[100dvh] bg-[#1f1f1f] text-[#fbfbfb]">
-      <header className="mx-auto flex max-w-[1400px] items-center justify-between px-5 py-4 sm:px-8 lg:px-12">
+    <main className="flex h-[100dvh] flex-col overflow-hidden bg-[#1f1f1f] text-[#fbfbfb]">
+      <header className="mx-auto flex w-full max-w-[1400px] shrink-0 items-center justify-between px-4 py-2.5 sm:px-8 sm:py-3 lg:px-12">
         <BrandMark />
         <div className="flex items-center gap-4">
           <div className="hidden text-right sm:block"><div className="text-[10px] font-bold uppercase tracking-[.18em] text-[#dfdfdf]">Player</div><div className="text-sm font-bold">{entry.name}</div></div>
           <button aria-label="Start over with a new player" className="grid h-10 w-10 place-items-center rounded-full border border-[#e0d9dd] text-[#dfdfdf] transition-colors hover:bg-[#ffffff] hover:text-[#ea078c]" data-testid="button-restart-top" onClick={onRestart} type="button"><RotateCcw size={16} /></button>
         </div>
       </header>
-      <div className="mx-auto max-w-[1400px] px-5 pb-8 sm:px-8 lg:px-12 lg:pb-14">
-        <div className="mb-5 flex flex-wrap items-end justify-between gap-5 sm:mb-7">
-          <div>
-            <div className="mb-2 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[.2em] text-[#ea078c]"><span className="h-2 w-2 rounded-full bg-[#ea078c]" /> Anniversary challenge</div>
-            <h1 className="display-font text-5xl font-black uppercase leading-[.88] tracking-[-.02em] sm:text-6xl">Pick your <span className="text-[#ea078c]">reward.</span></h1>
+      <div className="mx-auto flex min-h-0 w-full max-w-[1400px] flex-1 flex-col px-4 pb-3 sm:px-8 lg:px-12 lg:pb-5">
+        <div className="mb-3 flex shrink-0 flex-wrap items-center justify-between gap-3 sm:mb-4">
+          <div className="min-w-0">
+            <div className="mb-1 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[.2em] text-[#ea078c]"><span className="h-2 w-2 rounded-full bg-[#ea078c]" /> Anniversary challenge</div>
+            <h1 className="display-font text-[clamp(1.75rem,5vh,3.25rem)] font-black uppercase leading-[.88] tracking-[-.02em]">Pick your <span className="text-[#ea078c]">reward.</span></h1>
           </div>
-          <div className="flex items-center gap-4 rounded-xl bg-[#ffffff] px-3 py-2.5 shadow-[3px_3px_0_#e0d9dd]">
+          <div className="flex items-center gap-4 rounded-xl bg-[#ffffff] px-3 py-2 shadow-[3px_3px_0_#e0d9dd]">
             <Progress count={shots.length} />
             {best > 0 ? <div className="border-l border-[#e0d9dd] pl-4"><div className="text-[9px] font-bold uppercase tracking-[.14em] text-[#dfdfdf]">Best so far</div><div className="display-font text-2xl font-black text-[#685bc7]">{best}%</div></div> : null}
           </div>
         </div>
-        <GameCourt hoopRewards={hoopRewards} onShot={onShot} shots={shots} />
-        <div className="mt-5 flex items-center justify-between gap-3 text-xs text-[#dfdfdf]">
+        <div className="min-h-0 flex-1">
+          <GameCourt hoopRewards={hoopRewards} onShot={onShot} shots={shots} />
+        </div>
+        <div className="mt-3 flex shrink-0 items-center justify-between gap-3 text-xs text-[#dfdfdf]">
           <span className="flex items-center gap-2"><span className="grid h-6 w-6 place-items-center rounded-full bg-[#685bc7] text-white"><Target size={13} /></span> Hit a hoop to reveal its hidden reward.</span>
           <span className="hidden font-bold uppercase tracking-[.12em] sm:block">{MAX_SHOTS - shots.length} {MAX_SHOTS - shots.length === 1 ? 'chance' : 'chances'} left</span>
         </div>
@@ -638,6 +707,7 @@ function Home() {
   const [couponCode, setCouponCode] = useState<string | null>(null);
   const [campaignCompleted, setCampaignCompleted] = useState(false);
   const [hydrated, setHydrated] = useState(false);
+  const showLandscapePrompt = usePortraitPhoneOrTablet();
 
   useEffect(() => {
     const saved = readSession();
@@ -710,15 +780,19 @@ function Home() {
     setPhase('entry');
   }
 
-  if (phase === 'entry' || !entry) return <EntryScreen onStart={start} />;
-  if (phase === 'claiming') {
-    if (campaignCompleted) {
-      return <ResultScreen best={best} couponCode={couponCode} entry={entry} onRestart={restart} shots={shots} />;
-    }
-    return <ClaimingScreen best={best} entry={entry} onSuccess={finishClaim} shots={shots} timestamp={timestamp} />;
-  }
-  if (phase === 'result') return <ResultScreen best={best} couponCode={couponCode} entry={entry} onRestart={restart} shots={shots} />;
-  return <GameScreen best={best} entry={entry} hoopRewards={hoopRewards} onRestart={restart} onShot={recordShot} shots={shots} />;
+  let view: ReactNode;
+  if (phase === 'entry' || !entry) view = <EntryScreen onStart={start} />;
+  else if (phase === 'claiming' && campaignCompleted) view = <ResultScreen best={best} couponCode={couponCode} entry={entry} onRestart={restart} shots={shots} />;
+  else if (phase === 'claiming') view = <ClaimingScreen best={best} entry={entry} onSuccess={finishClaim} shots={shots} timestamp={timestamp} />;
+  else if (phase === 'result') view = <ResultScreen best={best} couponCode={couponCode} entry={entry} onRestart={restart} shots={shots} />;
+  else view = <GameScreen best={best} entry={entry} hoopRewards={hoopRewards} onRestart={restart} onShot={recordShot} shots={shots} />;
+
+  return (
+    <>
+      {view}
+      {showLandscapePrompt ? <LandscapeOverlay /> : null}
+    </>
+  );
 }
 
 function Router() {
