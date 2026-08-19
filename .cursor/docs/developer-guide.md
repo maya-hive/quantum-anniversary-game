@@ -61,7 +61,6 @@ Copy `.env.example` to `.env` and set:
 
 - `FRONTEND_API_SECRET` — HMAC secret shared with WordPress
 - `BACKEND_ENDPOINT` — WordPress coupon URL (e.g. `https://quantum-f2.mayahive.dev/wp-json/custom/v1/generate-coupon`)
-- `FRONTEND_DOMAIN` — domain string included in the HMAC payload
 - `GOOGLE_SHEETS_SPREADSHEET_ID` — ID from the spreadsheet URL
 - `GOOGLE_SHEETS_TAB` — tab name (default `Campaign`)
 - `GOOGLE_SERVICE_ACCOUNT_EMAIL` — service account client email
@@ -134,9 +133,9 @@ The HMAC secret stays on the server; the lookup response is only `{ exists, coup
 
 ### Coupon API
 
-`POST /api/campaign/complete` re-checks the email first. Returning players get the stored coupon and skip WordPress and Sheets. New players: sign `email|amount|timestamp|FRONTEND_DOMAIN` with HMAC-SHA256 and POST to `BACKEND_ENDPOINT` when `best > 0`, then append the Google Sheet row. Amount is the player's best discount.
+`POST /api/campaign/complete` re-checks the email first. Returning players get the stored coupon and skip WordPress and Sheets. New players: sign `email|amount|timestamp` with HMAC-SHA256 and POST to `BACKEND_ENDPOINT` when `best > 0`, then append the Google Sheet row. Amount is the player's best discount.
 
-If this returns 502, WordPress or Google Sheets failed. Confirm `FRONTEND_API_SECRET` / `FRONTEND_DOMAIN` in WordPress match `.env`, and that the service account can edit the spreadsheet.
+If this returns 502, WordPress or Google Sheets failed. Confirm `FRONTEND_API_SECRET` in WordPress matches `.env`, and that the service account can edit the spreadsheet.
 
 The game Vite server proxies `/api` to `http://127.0.0.1:8080`. If the API is not running, the proxy returns 503 with a JSON message. Run both:
 
