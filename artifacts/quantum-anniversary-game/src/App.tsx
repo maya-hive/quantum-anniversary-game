@@ -335,7 +335,7 @@ function EntryScreen({ onStart }: { onStart: (entry: Entry) => void }) {
 
 function Hoop({ index, active }: { index: number; active: boolean }) {
   const left = `${HOOP_POSITIONS[index] * 100}%`;
-  const colors = ['#ea078c', '#685bc7', '#9f005f', '#b02ef2'];
+  const colors = ['#ea078c', '#ea078c', '#ea078c', '#ea078c'];
   const color = colors[index];
   return (
     <div className={`absolute top-[23%] -translate-x-1/2 transition-transform duration-300 ${active ? 'scale-110' : ''}`} style={{ left }} data-testid={`hoop-${index + 1}`}>
