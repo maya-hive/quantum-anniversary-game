@@ -107,26 +107,23 @@ function readSession(): Session | null {
 
 function Logo() {
   return (
-    <div className="flex items-center gap-2.5" data-testid="brand-quantum">
-      <div className="grid h-10 w-10 place-items-center rounded-[11px] bg-[#ea078c] text-[#ffffff] shadow-[4px_4px_0_#ffffff]">
-        <span className="display-font text-3xl font-black leading-none">Q</span>
-      </div>
-      <div className="leading-none">
-        <div className="display-font text-[24px] font-black tracking-[.08em] text-[#ffffff]">QUANTUM</div>
-        <div className="mt-1 text-[9px] font-bold tracking-[.3em] text-[#685bc7]">FITNESS GEAR</div>
-      </div>
+    <div className="flex items-center" data-testid="brand-quantum">
+      <img
+        alt="Quantum Fitness"
+        className="h-14 w-auto rounded-md bg-[#ffffff] object-contain p-1 sm:h-16"
+        src={`${import.meta.env.BASE_URL}quantum-logo.webp`}
+      />
     </div>
   );
 }
 
-function BrandMark({ inverted = false }: { inverted?: boolean }) {
+function BrandMark() {
   return (
-    <div className={`flex items-center gap-2 ${inverted ? 'text-[#ffffff]' : 'text-[#ffffff]'}`}>
-      <div className={`grid h-8 w-8 place-items-center rounded-lg ${inverted ? 'bg-[#ea078c]' : 'bg-[#ffffff]'} text-[#ffffff]`}>
-        <span className="display-font text-2xl font-black leading-none">Q</span>
-      </div>
-      <span className="display-font text-lg font-black tracking-[.09em]">QUANTUM.LK</span>
-    </div>
+    <img
+      alt="Quantum Fitness"
+      className="h-11 w-auto rounded-md bg-[#ffffff] object-contain p-0.5"
+      src={`${import.meta.env.BASE_URL}quantum-logo.webp`}
+    />
   );
 }
 
@@ -463,13 +460,13 @@ function GameCourt({
       ref={courtRef}
       role="application"
     >
-      <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(85,3,51,.96),rgba(159,0,95,.94))]" />
+      <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(10,10,10,0.96),rgba(10,10,10,0.96))]" />
       <div className="absolute inset-x-0 top-[14%] h-px bg-[#f5c4e0]/30" />
       <div className="absolute left-1/2 top-[9%] h-[43%] w-[55%] -translate-x-1/2 rounded-[50%] border border-[#f5c4e0]/35" />
       <div className="absolute left-1/2 top-[20%] h-[21%] w-[25%] -translate-x-1/2 border border-[#f5c4e0]/25" />
       <div className="absolute bottom-0 left-1/2 h-[18%] w-[68%] -translate-x-1/2 rounded-t-[50%] border-t-2 border-[#f5c4e0]/35" />
-      <div className="absolute bottom-0 left-1/2 h-[7px] w-full -translate-x-1/2 bg-[#ea078c]" />
-      <div className="absolute left-5 top-5 z-10 flex items-center gap-2 rounded-full bg-[#410020]/60 px-3 py-2 text-[10px] font-bold uppercase tracking-[.17em] text-[#fce4f2] sm:left-7 sm:top-7">
+      <div className="absolute bottom-0 left-1/2 h-[7px] w-full -translate-x-1/2 bg-[#000000]" />
+      <div className="absolute left-5 top-5 z-10 flex items-center gap-2 rounded-full bg-[#ea078c]/60 px-3 py-2 text-[10px] font-bold uppercase tracking-[.17em] text-[#fce4f2] sm:left-7 sm:top-7">
         <Target size={14} /> Aim and release
       </div>
       {HOOP_POSITIONS.map((_position, index) => <Hoop active={activeHoop === index} index={index} key={index} />)}

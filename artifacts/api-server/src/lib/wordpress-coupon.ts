@@ -73,15 +73,18 @@ export function extractCouponCode(payload: unknown): string | null {
   return null;
 }
 
+function couponEndpoint(): string {
+  return requiredEnv("BACKEND_ENDPOINT").replace(/[+\s/]+$/g, "");
+}
+
 export async function requestDynamicCoupon(
   customerEmail: string,
   discountAmount: number,
 ): Promise<string> {
   const secret = requiredEnv("FRONTEND_API_SECRET");
-  const domain = requiredEnv("FRONTEND_DOMAIN");
-  const endpoint = requiredEnv("BACKEND_ENDPOINT");
+  const endpoint = couponEndpoint();
   const timestamp = Math.floor(Date.now() / 1000).toString();
-  const payloadString = `${customerEmail}|${discountAmount}|${timestamp}|${domain}`;
+  const payloadString = `${customerEmail}|${discountAmount}|${timestamp}`;
   const signature = createHmac("sha256", secret)
     .update(payloadString)
     .digest("hex");
