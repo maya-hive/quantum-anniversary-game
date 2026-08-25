@@ -354,13 +354,14 @@ function Basketball({ aiming, aim, shooting, shotStyle }: { aiming: boolean; aim
   const pullX = aiming && !shooting ? (aim.x - .5) * 18 : 0;
   const pullY = aiming && !shooting ? (aim.y - .72) * 18 : 0;
   return (
-    <div className="absolute bottom-[8%] left-1/2 z-20 h-14 w-14 -ml-7 transition-transform duration-150 sm:h-[70px] sm:w-[70px] sm:-ml-[35px]" style={{ transform: `translate3d(${pullX}px, ${pullY}px, 0)` }}>
-      <div className={`relative h-full w-full ${shooting ? 'shot-animation' : 'animate-float-ball'}`} style={shotStyle}>
-        <div className="relative h-full w-full rounded-full border-[3px] border-[#9d3a25] bg-[#f65a38] shadow-[4px_6px_0_rgba(27,27,27,.35)]">
-          <span className="absolute left-1/2 top-[-4px] h-[calc(100%+8px)] w-[3px] -translate-x-1/2 rotate-[33deg] rounded-full bg-[#9d3a25]" />
-          <span className="absolute left-[-4px] top-[40%] h-[3px] w-[calc(100%+8px)] rotate-[-34deg] rounded-full bg-[#9d3a25]" />
-          <span className="absolute left-[9%] top-[24%] h-[3px] w-[83%] rotate-[62deg] rounded-full bg-[#9d3a25]" />
-        </div>
+    <div className="absolute bottom-[8%] left-1/2 z-20 h-14 w-14 -ml-7 transition-transform duration-150 sm:h-[90px] sm:w-[90px] sm:-ml-[35px]" style={{ transform: `translate3d(${pullX}px, ${pullY}px, 0)` }}>
+      <div className={`relative h-full w-full overflow-hidden rounded-full ${shooting ? 'shot-animation' : 'animate-float-ball'}`} style={shotStyle}>
+        <img
+          alt=""
+          className="h-full w-full rounded-full object-cover shadow-[4px_6px_0_rgba(27,27,27,.35)]"
+          draggable={false}
+          src="/basketball.png"
+        />
       </div>
     </div>
   );
@@ -369,11 +370,12 @@ function Basketball({ aiming, aim, shooting, shotStyle }: { aiming: boolean; aim
 function Hand({ aiming }: { aiming: boolean }) {
   return (
     <div className={`absolute bottom-[-13px] left-1/2 z-10 h-[110px] w-[142px] -translate-x-1/2 transition-transform sm:h-[135px] sm:w-[174px] ${aiming ? 'scale-105' : ''}`}>
-      <div className="absolute bottom-0 left-1/2 h-[75px] w-[106px] -translate-x-1/2 rounded-[52%_48%_22%_24%] border-[3px] border-[#b94731] bg-[#f07a5a] shadow-[5px_5px_0_rgba(27,27,27,.24)] sm:h-[92px] sm:w-[128px]" />
-      <div className="absolute bottom-[43px] left-[18px] h-[63px] w-[33px] -rotate-[41deg] rounded-full border-[3px] border-[#b94731] bg-[#f58d6d] sm:bottom-[53px] sm:left-[21px] sm:h-[75px] sm:w-[42px]" />
-      <div className="absolute bottom-[47px] right-[8px] h-[59px] w-[29px] rotate-[28deg] rounded-full border-[3px] border-[#b94731] bg-[#f58d6d] sm:bottom-[58px] sm:right-[10px] sm:h-[74px] sm:w-[36px]" />
-      <div className="absolute bottom-[64px] left-[48px] h-[34px] w-[26px] -rotate-[15deg] rounded-full border-[3px] border-[#b94731] bg-[#f58d6d] sm:bottom-[77px] sm:left-[60px] sm:h-[42px] sm:w-[32px]" />
-      <div className="absolute bottom-[60px] left-[73px] h-[39px] w-[27px] rotate-[10deg] rounded-full border-[3px] border-[#b94731] bg-[#f58d6d] sm:bottom-[73px] sm:left-[89px] sm:h-[48px] sm:w-[33px]" />
+      <img
+        alt=""
+        className="h-full w-full object-contain"
+        draggable={false}
+        src="/hands.png"
+      />
     </div>
   );
 }
@@ -480,7 +482,7 @@ function GameCourt({
           <MoveHorizontal size={13} /> Hold · drag · release
         </div>
       </div>
-      <Hand aiming={isAiming} />
+      {/* <Hand aiming={isAiming} /> */}
       <Basketball aim={aim} aiming={isAiming} shotStyle={shotStyle} shooting={isShooting} />
       <div className="absolute bottom-3 left-1/2 z-20 -translate-x-1/2 whitespace-nowrap text-[10px] font-bold uppercase tracking-[.15em] text-[#ffffff]/100 sm:bottom-4">
         {isShooting ? 'On its way...' : isAiming ? 'Guide the path to a hoop' : 'Hold the ball and drag'}
