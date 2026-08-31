@@ -335,16 +335,15 @@ function EntryScreen({ onStart }: { onStart: (entry: Entry) => void }) {
 
 function Hoop({ index, active }: { index: number; active: boolean }) {
   const left = `${HOOP_POSITIONS[index] * 100}%`;
-  const colors = ['#ea078c', '#ea078c', '#ea078c', '#ea078c'];
-  const color = colors[index];
   return (
     <div className={`absolute top-[23%] -translate-x-1/2 transition-transform duration-300 ${active ? 'scale-110' : ''}`} style={{ left }} data-testid={`hoop-${index + 1}`}>
-      <div className="relative h-[115px] w-[112px] sm:h-[144px] sm:w-[138px]">
-        <div className="absolute left-1/2 top-0 h-[53px] w-[72px] -translate-x-1/2 rounded border-[3px] border-[#f7f5f6]/80 bg-[#f5d0e8]/20 shadow-[2px_2px_0_#ffffff]/30 sm:h-[67px] sm:w-[91px]" />
-        <div className="absolute left-1/2 top-[17px] h-[56px] w-[3px] -translate-x-1/2 bg-[#f7f5f6]/70 sm:h-[73px]" />
-        <div className="absolute left-1/2 top-[47px] h-3 w-[61px] -translate-x-1/2 rounded-[50%] border-[4px] border-[#ea078c] bg-transparent sm:top-[61px] sm:w-[78px] sm:border-[5px]" style={{ borderColor: color }} />
-        <div className={`hoop-net absolute left-1/2 top-[52px] h-[38px] w-[47px] -translate-x-1/2 border-x-[2px] border-b-[2px] border-dashed border-[#f7f5f6]/70 sm:top-[66px] sm:h-[49px] sm:w-[61px]`} />
-        <div className="absolute left-1/2 top-[90px] h-5 w-[2px] -translate-x-1/2 bg-[#f7f5f6]/45 sm:top-[113px]" />
+      <div className="relative h-[140px] w-[94px] sm:h-[175px] sm:w-[118px]">
+        <img
+          alt=""
+          className="h-full w-full object-contain"
+          draggable={false}
+          src="/hoop.png"
+        />
       </div>
     </div>
   );
@@ -478,7 +477,7 @@ function GameCourt({
         <circle cx={pathEndX} cy={pathEndY} fill="none" opacity={isAiming ? ".75" : ".35"} r={isAiming ? "3.5" : "2.5"} stroke="#ea078c" strokeWidth=".45" />
       </svg>
       <div className={`absolute bottom-[18%] left-1/2 z-10 -translate-x-1/2 transition-opacity ${isAiming ? 'opacity-100' : 'opacity-0'}`}>
-        <div className="flex items-center gap-2 whitespace-nowrap rounded-full bg-[#ffffff] px-3 py-1.5 text-[10px] font-bold uppercase tracking-[.15em] text-[#ffffff]">
+        <div className="flex items-center gap-2 whitespace-nowrap rounded-full bg-[#ffffff] px-3 py-1.5 text-[10px] font-bold uppercase tracking-[.15em] text-[#000000]">
           <MoveHorizontal size={13} /> Hold · drag · release
         </div>
       </div>
