@@ -463,10 +463,16 @@ function GameCourt({
     >
       <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(10,10,10,0.96),rgba(10,10,10,0.96))]" />
       <div className="absolute inset-x-0 top-[14%] h-px bg-[#f5c4e0]/30" />
-      <div className="absolute left-1/2 top-[9%] h-[43%] w-[55%] -translate-x-1/2 rounded-[50%] border border-[#f5c4e0]/35" />
+      {/* <div className="absolute left-1/2 top-[9%] h-[43%] w-[55%] -translate-x-1/2 rounded-[50%] border border-[#f5c4e0]/35" /> */}
       <div className="absolute left-1/2 top-[20%] h-[21%] w-[25%] -translate-x-1/2 border border-[#f5c4e0]/25" />
       <div className="absolute bottom-0 left-1/2 h-[18%] w-[68%] -translate-x-1/2 rounded-t-[50%] border-t-2 border-[#f5c4e0]/35" />
       <div className="absolute bottom-0 left-1/2 h-[7px] w-full -translate-x-1/2 bg-[#000000]" />
+      <img
+        alt=""
+        aria-hidden="true"
+        className="pointer-events-none absolute left-1/2 top-3/5 z-[1] w-[38%] max-w-[200px] -translate-x-1/2 -translate-y-1/2 opacity-20 mix-blend-lighten"
+        src={`${import.meta.env.BASE_URL}qf-annivesary-logo.png`}
+      />
       <div className="absolute left-5 top-5 z-10 flex items-center gap-2 rounded-full bg-[#ea078c]/60 px-3 py-2 text-[10px] font-bold uppercase tracking-[.17em] text-[#fce4f2] sm:left-7 sm:top-7">
         <Target size={14} /> Aim and release
       </div>
