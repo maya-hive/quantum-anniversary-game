@@ -47,55 +47,6 @@ function shuffleRewards() {
   return shuffled;
 }
 
-function usePortraitPhoneOrTablet() {
-  const [show, setShow] = useState(false);
-
-  useEffect(() => {
-    const landscape = window.matchMedia('(orientation: landscape)');
-    const coarse = window.matchMedia('(pointer: coarse)');
-    const compact = window.matchMedia('(max-width: 1024px)');
-
-    function update() {
-      setShow(!landscape.matches && (coarse.matches || compact.matches));
-    }
-
-    update();
-    landscape.addEventListener('change', update);
-    coarse.addEventListener('change', update);
-    compact.addEventListener('change', update);
-    return () => {
-      landscape.removeEventListener('change', update);
-      coarse.removeEventListener('change', update);
-      compact.removeEventListener('change', update);
-    };
-  }, []);
-
-  return show;
-}
-
-function LandscapeOverlay() {
-  return (
-    <div
-      aria-live="polite"
-      className="pointer-events-auto fixed inset-0 z-[80] grid place-items-center bg-[#1f1f1f] px-6 text-center text-[#fbfbfb]"
-      data-testid="overlay-landscape"
-      role="dialog"
-      aria-labelledby="landscape-heading"
-      aria-modal="true"
-    >
-      <div className="flex max-w-sm flex-col items-center">
-        <svg aria-hidden="true" className="device-to-landscape h-28 w-28" fill="none" viewBox="0 0 80 120">
-          <rect height="112" rx="14" stroke="#ea078c" strokeWidth="4" width="64" x="8" y="4" />
-          <rect fill="#685bc7" height="6" rx="3" width="22" x="29" y="12" />
-          <circle cx="40" cy="104" fill="#685bc7" r="5" />
-        </svg>
-        <h2 className="display-font mt-8 text-4xl font-black uppercase leading-none" id="landscape-heading">Turn your device</h2>
-        <p className="mt-4 text-sm font-medium leading-6 text-[#dfdfdf]">This game is best played in landscape. Rotate your phone or tablet to continue.</p>
-      </div>
-    </div>
-  );
-}
-
 function readSession(): Session | null {
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
@@ -252,18 +203,18 @@ function EntryScreen({ onStart }: { onStart: (entry: Entry) => void }) {
       </header>
 
       <div className="relative mx-auto grid max-w-7xl items-center gap-12 px-5 pb-10 pt-8 sm:px-8 lg:grid-cols-[1.12fr_.88fr] lg:gap-20 lg:px-12 lg:pb-24 lg:pt-20">
-        <section className="animate-enter-up">
-          <div className="mb-6 flex items-center gap-3">
+        <section className="animate-enter-up text-center lg:text-left">
+          <div className="mb-6 flex items-center gap-3 justify-center lg:justify-start">
             <span className="h-px w-10 bg-[#ea078c]" />
             <span className="text-[11px] font-bold uppercase tracking-[.24em] text-[#ea078c]">Quantum anniversary game</span>
           </div>
-          <h1 className="display-font max-w-[700px] text-[clamp(4rem,10vw,6rem)] font-black uppercase leading-[1] tracking-[-.045em]">
+          <h1 className="display-font mx-auto lg:mx-0 max-w-[700px] text-[clamp(4rem,10vw,6rem)] font-black uppercase leading-[1] tracking-[-.045em]">
             Take your<br /><span className="text-[#ea078c]">best shot.</span>
           </h1>
-          <p className="mt-7 max-w-lg text-base leading-7 text-[#dfdfdf] sm:text-lg">
+          <p className="mt-7 max-w-lg text-base leading-7 text-[#dfdfdf] sm:text-lg mx-auto lg:mx-0">
             Three throws. Four hoops. One reward to take home. Step up and shoot for a Quantum anniversary discount.
           </p>
-          <div className="mt-10 flex flex-wrap items-center gap-x-8 gap-y-3 text-xs font-bold uppercase tracking-[.16em] text-[#dfdfdf]">
+          <div className="mt-10 flex flex-wrap items-center gap-x-8 gap-y-3 text-xs font-bold uppercase tracking-[.16em] text-[#dfdfdf] justify-center lg:justify-start">
             <span className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-[#ea078c]" /> 3 chances</span>
             <span className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-[#685bc7]" /> up to 25% off</span>
           </div>
@@ -337,7 +288,7 @@ function Hoop({ index, active }: { index: number; active: boolean }) {
   const left = `${HOOP_POSITIONS[index] * 100}%`;
   return (
     <div className={`absolute top-[23%] -translate-x-1/2 transition-transform duration-300 ${active ? 'scale-110' : ''}`} style={{ left }} data-testid={`hoop-${index + 1}`}>
-      <div className="relative h-[140px] w-[94px] sm:h-[175px] sm:w-[118px]">
+      <div className="relative h-[90px] w-[94px] sm:h-[175px] sm:w-[118px]">
         <img
           alt=""
           className="h-full w-full object-contain"
@@ -528,10 +479,10 @@ function GameScreen({ entry, shots, best, hoopRewards, onShot, onRestart }: { en
       <div className="mx-auto flex min-h-0 w-full max-w-[1400px] flex-1 flex-col px-4 pb-3 sm:px-8 lg:px-12 lg:pb-5">
         <div className="mb-3 flex shrink-0 flex-wrap items-center justify-between gap-3 sm:mb-4">
           <div className="min-w-0">
-            <div className="mb-1 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[.2em] text-[#ea078c]"><span className="h-2 w-2 rounded-full bg-[#ea078c]" /> Anniversary challenge</div>
-            <h1 className="display-font text-[clamp(1.75rem,5vh,3.25rem)] font-black uppercase leading-[.88] tracking-[-.02em]">Pick your <span className="text-[#ea078c]">reward.</span></h1>
+            <div className="mb-1 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[.2em] text-[#ea078c] justify-center lg:justify-start"><span className="h-2 w-2 rounded-full bg-[#ea078c]" /> Anniversary challenge</div>
+            <h1 className="display-font text-[clamp(1.75rem,5vh,3.25rem)] font-black uppercase leading-[.88] tracking-[-.02em] text-center lg:text-left">Pick your <span className="text-[#ea078c]">reward.</span></h1>
           </div>
-          <div className="flex items-center gap-4 rounded-xl bg-[#ffffff] px-3 py-2 shadow-[3px_3px_0_#e0d9dd]">
+          <div className="flex items-center gap-4 rounded-xl bg-[#ffffff] px-3 py-2 shadow-[3px_3px_0_#e0d9dd] mx-auto lg:mx-0">
             <Progress count={shots.length} />
             {best > 0 ? <div className="border-l border-[#e0d9dd] pl-4"><div className="text-[9px] font-bold uppercase tracking-[.14em] text-[#dfdfdf]">Best so far</div><div className="display-font text-2xl font-black text-[#685bc7]">{best}%</div></div> : null}
           </div>
@@ -661,12 +612,12 @@ function ResultScreen({ entry, shots, best, couponCode, onRestart }: { entry: En
     <main className="relative min-h-[100dvh] overflow-hidden bg-[#1f1f1f] text-[#fbfbfb]">
       <Confetti />
       <header className="relative z-10 mx-auto flex max-w-7xl items-center justify-between px-5 py-5 sm:px-8 lg:px-12"><BrandMark /><button className="flex items-center gap-2 text-xs font-bold uppercase tracking-[.12em] text-[#dfdfdf] transition-colors hover:text-[#ea078c]" data-testid="button-new-player" onClick={onRestart} type="button"><RotateCcw size={15} /> New player</button></header>
-      <div className="relative z-10 mx-auto grid max-w-6xl items-center gap-10 px-5 pb-12 pt-10 sm:px-8 lg:grid-cols-[.95fr_1.05fr] lg:gap-20 lg:pb-24 lg:pt-16">
+      <div className="relative z-10 mx-auto grid max-w-6xl items-center gap-10 px-5 pb-12 pt-10 sm:px-8 lg:grid-cols-[.95fr_1.05fr] lg:gap-20 lg:pb-24 lg:pt-16 text-center lg:text-left">
         <section className="animate-enter-up">
           <div className="mb-6 inline-flex items-center gap-2 rounded-full bg-[#685bc7] px-3 py-2 text-[10px] font-bold uppercase tracking-[.16em] text-white"><Trophy size={14} /> Final whistle</div>
           <h1 className="display-font text-[clamp(4rem,10vw,6rem)] font-black uppercase leading-[1] tracking-[-.04em]">That’s a<br /><span className="text-[#ea078c]">wrap.</span></h1>
-          <p className="mt-7 max-w-md text-lg leading-7 text-[#dfdfdf]">Nice shooting, <strong className="text-[#ffffff]">{entry.name}</strong>. {couponCode ? 'Your coupon is ready to use at checkout.' : 'Your best landed reward is ready to use.'}</p>
-          <div className="mt-9 flex flex-wrap gap-3">
+          <p className="mt-7 max-w-md text-lg leading-7 text-[#dfdfdf] mx-auto lg:ml-0">Nice shooting, <strong className="text-[#ffffff]">{entry.name}</strong>. {couponCode ? 'Your coupon is ready to use at checkout.' : 'Your best landed reward is ready to use.'}</p>
+          <div className="mt-9 flex flex-wrap gap-3 justify-center lg:justify-start">
             <button className="flex items-center gap-2 rounded-xl bg-[#ea078c] px-5 py-3.5 text-sm font-bold text-[#ffffff] shadow-[0_4px_0_#d1067d] transition-transform hover:-translate-y-0.5 active:translate-y-1 active:shadow-none" data-testid="button-play-again" onClick={onRestart} type="button"><RotateCcw size={16} /> Play again</button>
           </div>
         </section>
@@ -711,7 +662,6 @@ function Home() {
   const [couponCode, setCouponCode] = useState<string | null>(null);
   const [campaignCompleted, setCampaignCompleted] = useState(false);
   const [hydrated, setHydrated] = useState(false);
-  const showLandscapePrompt = usePortraitPhoneOrTablet();
 
   useEffect(() => {
     const saved = readSession();
@@ -791,12 +741,7 @@ function Home() {
   else if (phase === 'result') view = <ResultScreen best={best} couponCode={couponCode} entry={entry} onRestart={restart} shots={shots} />;
   else view = <GameScreen best={best} entry={entry} hoopRewards={hoopRewards} onRestart={restart} onShot={recordShot} shots={shots} />;
 
-  return (
-    <>
-      {view}
-      {showLandscapePrompt ? <LandscapeOverlay /> : null}
-    </>
-  );
+  return view;
 }
 
 function Router() {
