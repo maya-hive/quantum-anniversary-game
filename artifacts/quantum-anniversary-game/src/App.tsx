@@ -47,6 +47,55 @@ function shuffleRewards() {
   return shuffled;
 }
 
+function useLandscapePhoneOrTablet() {
+  const [show, setShow] = useState(false);
+
+  useEffect(() => {
+    const landscape = window.matchMedia('(orientation: landscape)');
+    const coarse = window.matchMedia('(pointer: coarse)');
+    const compact = window.matchMedia('(max-width: 1024px)');
+
+    function update() {
+      setShow(landscape.matches && (coarse.matches || compact.matches));
+    }
+
+    update();
+    landscape.addEventListener('change', update);
+    coarse.addEventListener('change', update);
+    compact.addEventListener('change', update);
+    return () => {
+      landscape.removeEventListener('change', update);
+      coarse.removeEventListener('change', update);
+      compact.removeEventListener('change', update);
+    };
+  }, []);
+
+  return show;
+}
+
+function PortraitOverlay() {
+  return (
+    <div
+      aria-live="polite"
+      className="pointer-events-auto fixed inset-0 z-[80] grid place-items-center bg-[#1f1f1f] px-6 text-center text-[#fbfbfb]"
+      data-testid="overlay-portrait"
+      role="dialog"
+      aria-labelledby="portrait-heading"
+      aria-modal="true"
+    >
+      <div className="flex max-w-sm flex-col items-center">
+        <svg aria-hidden="true" className="device-to-portrait h-28 w-28" fill="none" viewBox="0 0 80 120">
+          <rect height="112" rx="14" stroke="#ea078c" strokeWidth="4" width="64" x="8" y="4" />
+          <rect fill="#685bc7" height="6" rx="3" width="22" x="29" y="12" />
+          <circle cx="40" cy="104" fill="#685bc7" r="5" />
+        </svg>
+        <h2 className="display-font mt-8 text-4xl font-black uppercase leading-none" id="portrait-heading">Turn your device</h2>
+        <p className="mt-4 text-sm font-medium leading-6 text-[#dfdfdf]">This game is best played in portrait. Rotate your phone or tablet to continue.</p>
+      </div>
+    </div>
+  );
+}
+
 function readSession(): Session | null {
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
@@ -662,6 +711,7 @@ function Home() {
   const [couponCode, setCouponCode] = useState<string | null>(null);
   const [campaignCompleted, setCampaignCompleted] = useState(false);
   const [hydrated, setHydrated] = useState(false);
+  const showPortraitPrompt = useLandscapePhoneOrTablet();
 
   useEffect(() => {
     const saved = readSession();
@@ -741,7 +791,12 @@ function Home() {
   else if (phase === 'result') view = <ResultScreen best={best} couponCode={couponCode} entry={entry} onRestart={restart} shots={shots} />;
   else view = <GameScreen best={best} entry={entry} hoopRewards={hoopRewards} onRestart={restart} onShot={recordShot} shots={shots} />;
 
-  return view;
+  return (
+    <>
+      {view}
+      {showPortraitPrompt ? <PortraitOverlay /> : null}
+    </>
+  );
 }
 
 function Router() {
