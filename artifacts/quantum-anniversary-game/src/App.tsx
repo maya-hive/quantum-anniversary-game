@@ -110,8 +110,8 @@ function Logo() {
     <div className="flex items-center" data-testid="brand-quantum">
       <img
         alt="Quantum Fitness"
-        className="h-14 w-auto rounded-md bg-[#ffffff] object-contain p-1 sm:h-16"
-        src={`${import.meta.env.BASE_URL}quantum-logo.webp`}
+        className="h-14 w-auto rounded-md bg-[#ffffff] object-contain p-3 py-2 sm:h-11"
+        src={`${import.meta.env.BASE_URL}quantum-fitness-logo.webp`}
       />
     </div>
   );
@@ -121,8 +121,8 @@ function BrandMark() {
   return (
     <img
       alt="Quantum Fitness"
-      className="h-11 w-auto rounded-md bg-[#ffffff] object-contain p-0.5"
-      src={`${import.meta.env.BASE_URL}quantum-logo.webp`}
+      className="h-11 w-auto rounded-md bg-[#ffffff] object-contain p-3 py-2 sm:h-11"
+      src={`${import.meta.env.BASE_URL}quantum-fitness-logo.webp`}
     />
   );
 }
