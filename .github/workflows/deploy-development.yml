@@ -1,0 +1,127 @@
+# Copy to quantum-anniversary-game/.github/workflows/deploy-development.yml
+name: Deploy development
+
+on:
+  pull_request:
+    branches:
+      - develop
+    types:
+      - opened
+      - synchronize
+      - reopened
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-development
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: Deploy to development
+    runs-on: ubuntu-latest
+    environment:
+      name: development
+      url: https://${{ vars.PUBLIC_HOSTNAME }}
+    steps:
+      - name: Deploy over SSH
+        uses: appleboy/ssh-action@v1.2.2
+        env:
+          APPLICATION_PATH: ${{ vars.APPLICATION_PATH }}
+          GIT_REF: ${{ github.event.pull_request.head.sha }}
+          NODE_VERSION: ${{ vars.NODE_VERSION }}
+          BASE_PATH: ${{ vars.BASE_PATH }}
+          PORT: ${{ vars.PORT }}
+          NODE_ENV: ${{ vars.NODE_ENV }}
+          FRONTEND_API_SECRET: ${{ secrets.FRONTEND_API_SECRET }}
+          BACKEND_ENDPOINT: ${{ secrets.BACKEND_ENDPOINT || vars.BACKEND_ENDPOINT }}
+          GOOGLE_SHEETS_SPREADSHEET_ID: ${{ secrets.GOOGLE_SHEETS_SPREADSHEET_ID || vars.GOOGLE_SHEETS_SPREADSHEET_ID }}
+          GOOGLE_SHEETS_TAB: ${{ secrets.GOOGLE_SHEETS_TAB || vars.GOOGLE_SHEETS_TAB }}
+          GOOGLE_SERVICE_ACCOUNT_EMAIL: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_EMAIL || vars.GOOGLE_SERVICE_ACCOUNT_EMAIL }}
+          GOOGLE_PRIVATE_KEY: ${{ secrets.GOOGLE_PRIVATE_KEY }}
+        with:
+          host: ${{ vars.SERVER_HOSTNAME }}
+          username: ${{ vars.SERVER_USERNAME }}
+          port: ${{ vars.SERVER_PORT }}
+          key: ${{ secrets.SERVER_SECRET_KEY }}
+          command_timeout: 20m
+          script_stop: true
+          envs: APPLICATION_PATH,GIT_REF,NODE_VERSION,BASE_PATH,PORT,NODE_ENV,FRONTEND_API_SECRET,BACKEND_ENDPOINT,GOOGLE_SHEETS_SPREADSHEET_ID,GOOGLE_SHEETS_TAB,GOOGLE_SERVICE_ACCOUNT_EMAIL,GOOGLE_PRIVATE_KEY
+          script: |
+            set -euo pipefail
+            cd "$APPLICATION_PATH"
+            test -d .git
+
+            git fetch origin --tags --prune
+            git fetch origin "$GIT_REF"
+            git checkout --force "$GIT_REF"
+
+            # shellcheck disable=SC1091
+            source "$HOME/.nvm/nvm.sh"
+            nvm use "$NODE_VERSION"
+
+            export COREPACK_ENABLE_DOWNLOAD_PROMPT=0
+            npm install -g corepack@latest
+            corepack enable
+            corepack prepare pnpm@latest --activate
+
+            python3 - <<'PY'
+            from pathlib import Path
+            path = Path("pnpm-workspace.yaml")
+            text = path.read_text()
+            if "npm:@rollup/wasm-node" not in text:
+                lines = text.splitlines(True)
+                out = []
+                for line in lines:
+                    out.append(line)
+                    if line.startswith("overrides:"):
+                        out.append('  rollup: "npm:@rollup/wasm-node"\n')
+                path.write_text("".join(out))
+            PY
+
+            pnpm install
+
+            python3 - <<'PY'
+            import os
+            from pathlib import Path
+
+            key = (
+                os.environ["GOOGLE_PRIVATE_KEY"]
+                .replace("\r\n", "\n")
+                .replace("\n", "\\n")
+            )
+            content = "\n".join(
+                [
+                    f"PORT={os.environ['PORT']}",
+                    f"NODE_ENV={os.environ['NODE_ENV']}",
+                    f"FRONTEND_API_SECRET={os.environ['FRONTEND_API_SECRET']}",
+                    f"BACKEND_ENDPOINT={os.environ['BACKEND_ENDPOINT']}",
+                    f"GOOGLE_SHEETS_SPREADSHEET_ID={os.environ['GOOGLE_SHEETS_SPREADSHEET_ID']}",
+                    f"GOOGLE_SHEETS_TAB={os.environ['GOOGLE_SHEETS_TAB']}",
+                    f"GOOGLE_SERVICE_ACCOUNT_EMAIL={os.environ['GOOGLE_SERVICE_ACCOUNT_EMAIL']}",
+                    f'GOOGLE_PRIVATE_KEY="{key}"',
+                    "",
+                ]
+            )
+            env_path = Path(".env")
+            env_path.write_text(content)
+            env_path.chmod(0o660)
+            PY
+
+            export NODE_ENV=production
+            export BASE_PATH="${BASE_PATH:-/}"
+            pnpm --filter @workspace/quantum-anniversary-game run build
+            pnpm --filter @workspace/api-server run build
+
+            pm2 startOrReload ecosystem.config.js --update-env
+
+            ok=0
+            for _ in $(seq 1 15); do
+              if curl -sf --max-time 3 http://127.0.0.1:8080/api/healthz; then
+                ok=1
+                break
+              fi
+              sleep 2
+            done
+            test "$ok" -eq 1
