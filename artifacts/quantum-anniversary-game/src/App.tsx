@@ -21,7 +21,7 @@ import { completeCampaign, lookupCampaign } from '@workspace/api-client-react';
 
 const queryClient = new QueryClient();
 const STORAGE_KEY = 'quantum-hoops-anniversary-session';
-const HOOP_REWARDS = [5, 10, 15, 25] as const;
+const HOOP_REWARDS = [15, 18, 20] as const;
 const HOOP_POSITIONS = [.13, .375, .62, .86] as const;
 const MAX_SHOTS = 3;
 
@@ -261,11 +261,11 @@ function EntryScreen({ onStart }: { onStart: (entry: Entry) => void }) {
             Take your<br /><span className="text-[#ea078c]">best shot.</span>
           </h1>
           <p className="mt-7 max-w-lg text-base leading-7 text-[#dfdfdf] sm:text-lg mx-auto lg:mx-0">
-            Three throws. Four hoops. One reward to take home. Step up and shoot for a Quantum anniversary discount.
+            Three throws. Three hoops. One reward to take home. Step up and shoot for a Quantum anniversary discount.
           </p>
           <div className="mt-10 flex flex-wrap items-center gap-x-8 gap-y-3 text-xs font-bold uppercase tracking-[.16em] text-[#dfdfdf] justify-center lg:justify-start">
             <span className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-[#ea078c]" /> 3 chances</span>
-            <span className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-[#685bc7]" /> up to 25% off</span>
+            <span className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-[#685bc7]" /> up to 20% off</span>
           </div>
         </section>
 
