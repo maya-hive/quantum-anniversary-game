@@ -111,7 +111,7 @@ function Logo() {
     <div className="flex items-center" data-testid="brand-quantum">
       <img
         alt="Quantum Fitness"
-        className="h-14 w-auto rounded-md bg-[#ffffff] object-contain p-3 py-2 sm:h-11"
+        className="h-10 w-auto rounded-md bg-[#ffffff] object-contain p-2.5 py-1.5 sm:h-11 sm:p-3 sm:py-2"
         src={`${import.meta.env.BASE_URL}quantum-fitness-logo.webp`}
       />
     </div>
@@ -241,48 +241,48 @@ function EntryScreen({ onStart }: { onStart: (entry: Entry) => void }) {
   }
 
   return (
-    <main className="relative min-h-[100dvh] overflow-hidden bg-[#1f1f1f] text-[#fbfbfb]">
-      <div className="absolute -right-20 -top-24 h-72 w-72 rounded-full bg-[#685bc7] opacity-80" />
-      <div className="absolute bottom-[-170px] left-[-100px] h-96 w-96 rounded-full border-[42px] border-[#685bc7]/10" />
-      <header className="relative mx-auto flex max-w-7xl items-center justify-between px-5 py-5 sm:px-8 lg:px-12">
+    <main className="relative min-h-[100dvh] overflow-x-hidden bg-[#1f1f1f] text-[#fbfbfb]">
+      <div className="pointer-events-none absolute -right-20 -top-24 h-72 w-72 rounded-full bg-[#685bc7] opacity-80" />
+      <div className="pointer-events-none absolute bottom-[-170px] left-[-100px] h-96 w-96 rounded-full border-[42px] border-[#685bc7]/10" />
+      <header className="relative mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-8 sm:py-5 lg:px-12">
         <Logo />
-        <div className="hidden items-center gap-2 text-right sm:flex">
-          <span className="text-[10px] font-bold uppercase tracking-[.2em] text-[#dfdfdf]">Celebrating</span>
-          <span className="display-font text-xl font-black text-[#ea078c]">28 YEARS</span>
+        <div className="flex items-center gap-2 text-right">
+          <span className="hidden text-[10px] font-bold uppercase tracking-[.2em] text-[#dfdfdf] sm:inline">Celebrating</span>
+          <span className="display-font text-base font-black text-[#ea078c] sm:text-xl">28 YEARS</span>
         </div>
       </header>
 
-      <div className="relative mx-auto grid max-w-7xl items-center gap-12 px-5 pb-10 pt-8 sm:px-8 lg:grid-cols-[1.12fr_.88fr] lg:gap-20 lg:px-12 lg:pb-24 lg:pt-20">
+      <div className="relative mx-auto grid max-w-7xl items-start gap-5 px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-2 sm:items-center sm:gap-12 sm:px-8 sm:pb-10 sm:pt-8 lg:grid-cols-[1.12fr_.88fr] lg:gap-20 lg:px-12 lg:pb-24 lg:pt-20">
         <section className="animate-enter-up text-center lg:text-left">
-          <div className="mb-6 flex items-center gap-3 justify-center lg:justify-start">
-            <span className="h-px w-10 bg-[#ea078c]" />
-            <span className="text-[11px] font-bold uppercase tracking-[.24em] text-[#ea078c]">Quantum anniversary game</span>
+          <div className="mb-2 flex items-center gap-3 justify-center sm:mb-6 lg:justify-start">
+            <span className="h-px w-8 bg-[#ea078c] sm:w-10" />
+            <span className="text-[10px] font-bold uppercase tracking-[.24em] text-[#ea078c] sm:text-[11px]">Quantum anniversary game</span>
           </div>
-          <h1 className="display-font mx-auto lg:mx-0 max-w-[700px] text-[clamp(4rem,10vw,6rem)] font-black uppercase leading-[1] tracking-[-.045em]">
+          <h1 className="display-font mx-auto lg:mx-0 max-w-[700px] text-[clamp(2.35rem,11vw,6rem)] font-black uppercase leading-[.92] tracking-[-.045em] lg:text-[clamp(4rem,10vw,6rem)] lg:leading-[1]">
             Take your<br /><span className="text-[#ea078c]">best shot.</span>
           </h1>
-          <p className="mt-7 max-w-lg text-base leading-7 text-[#dfdfdf] sm:text-lg mx-auto lg:mx-0">
+          <p className="mx-auto mt-3 max-w-lg text-sm leading-6 text-[#dfdfdf] sm:mt-7 sm:text-lg sm:leading-7 lg:mx-0">
             Three throws. Four hoops. One reward to take home. Step up and shoot for a Quantum anniversary discount.
           </p>
-          <div className="mt-10 flex flex-wrap items-center gap-x-8 gap-y-3 text-xs font-bold uppercase tracking-[.16em] text-[#dfdfdf] justify-center lg:justify-start">
+          <div className="mt-4 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-[11px] font-bold uppercase tracking-[.16em] text-[#dfdfdf] sm:mt-10 sm:gap-x-8 sm:gap-y-3 sm:text-xs lg:justify-start">
             <span className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-[#ea078c]" /> 3 chances</span>
             <span className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-[#685bc7]" /> up to 20% off</span>
           </div>
         </section>
 
         <section className="animate-enter-right relative mx-auto w-full max-w-[470px]">
-          <div className="absolute -right-3 -top-14 z-10 grid h-20 w-20 rotate-6 place-items-center rounded-full bg-[#685bc7] text-center text-white shadow-[4px_5px_0_#121212]">
-            <span className="display-font text-[21px] font-black leading-[.8]">WIN<br />MORE</span>
+          <div className="absolute -right-2 -top-8 z-10 grid h-14 w-14 rotate-6 place-items-center rounded-full bg-[#685bc7] text-center text-white shadow-[4px_5px_0_#121212] sm:-right-3 sm:-top-14 sm:h-20 sm:w-20">
+            <span className="display-font text-[13px] font-black leading-[.8] sm:text-[21px]">WIN<br />MORE</span>
           </div>
-          <div className="rounded-[28px] border border-[#e0d9dd] bg-[#ffffff] p-6 shadow-[11px_12px_0_#121212] sm:p-8">
-            <div className="mb-7 flex items-start justify-between">
+          <div className="rounded-[28px] border border-[#e0d9dd] bg-[#ffffff] p-5 shadow-[11px_12px_0_#121212] sm:p-8">
+            <div className="mb-4 flex items-start justify-between sm:mb-7">
               <div>
-                <p className="display-font text-3xl font-black uppercase leading-none text-[#3f3f3f]">Get on court</p>
+                <p className="display-font text-[1.65rem] font-black uppercase leading-none text-[#3f3f3f] sm:text-3xl">Get on court</p>
                 <p className="mt-2 text-sm text-[#3f3f3f]">Enter your details to unlock the game.</p>
               </div>
               <div className="rounded-full bg-[#fce4f2] px-3 py-1.5 text-[10px] font-bold uppercase tracking-[.14em] text-[#685bc7]">Free to play</div>
             </div>
-            <form className="space-y-4" onSubmit={submit}>
+            <form className="space-y-3 sm:space-y-4" onSubmit={submit}>
               <Field error={errors.name} icon={<UserRound size={17} />} label="Your name" onChange={setName} placeholder="e.g. Ayesha Perera" testId="input-player-name" value={name} />
               <Field error={errors.email} icon={<Mail size={17} />} label="Email address" onChange={changeEmail} placeholder="you@example.com" testId="input-player-email" type="email" value={email} />
               <Field error={errors.phone} icon={<Phone size={17} />} label="Phone number" onChange={setPhone} placeholder="+94 77 123 4567" testId="input-player-phone" type="tel" value={phone} />
