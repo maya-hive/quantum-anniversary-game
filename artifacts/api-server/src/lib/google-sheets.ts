@@ -65,8 +65,25 @@ function dataRange(): string {
   return `${quoteSheetName(sheetTab())}!A:I`;
 }
 
-function normalizeEmail(email: string): string {
-  return email.trim().toLowerCase();
+export function normalizeEmail(email: string): string {
+  const trimmed = email.trim().toLowerCase();
+  const at = trimmed.lastIndexOf("@");
+  if (at <= 0) return trimmed;
+
+  let local = trimmed.slice(0, at);
+  let domain = trimmed.slice(at + 1);
+
+  const plus = local.indexOf("+");
+  if (plus !== -1) {
+    local = local.slice(0, plus);
+  }
+
+  if (domain === "gmail.com" || domain === "googlemail.com") {
+    local = local.replaceAll(".", "");
+    domain = "gmail.com";
+  }
+
+  return `${local}@${domain}`;
 }
 
 function readCoupon(value: unknown): string | null {

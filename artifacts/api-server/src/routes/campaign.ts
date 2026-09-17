@@ -8,6 +8,7 @@ import {
 import {
   appendCampaignRecord,
   lookupCampaignEmail,
+  normalizeEmail,
   SheetsProviderError,
 } from "../lib/google-sheets";
 import { requestDynamicCoupon, CouponProviderError } from "../lib/wordpress-coupon";
@@ -71,9 +72,10 @@ router.post("/campaign/complete", async (req, res) => {
     }
 
     const body = parsed.data;
+    const email = normalizeEmail(body.email);
 
     try {
-      const existing = await lookupCampaignEmail(body.email);
+      const existing = await lookupCampaignEmail(email);
       if (existing.exists) {
         const data = CompleteCampaignResponse.parse({
           couponCode: existing.couponCode,
@@ -96,7 +98,7 @@ router.post("/campaign/complete", async (req, res) => {
 
     if (body.best > 0) {
       try {
-        couponCode = await requestDynamicCoupon(body.email, body.best);
+        couponCode = await requestDynamicCoupon(email, body.best);
       } catch (err) {
         logger.error({ err }, "Failed to generate campaign coupon");
         const message =
@@ -113,7 +115,7 @@ router.post("/campaign/complete", async (req, res) => {
     try {
       const recorded = await appendCampaignRecord({
         name: body.name,
-        email: body.email,
+        email,
         phone: body.phone,
         shots: body.shots,
         best: body.best,
