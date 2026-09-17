@@ -34,6 +34,7 @@
 
 :root {
   /* Quantum.lk brand — primary #ea078c, secondary #685bc7, bg #f7f5f6 */
+  --app-height: 100svh;
   --background: 330 11% 96%;
   --foreground: 0 0% 11%;
   --border: 326 10% 86%;
@@ -70,9 +71,18 @@
 
 @layer base {
   * { @apply border-border; }
-  html { background: #1f1f1f; }
+  html {
+    background: #1f1f1f;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+  html, body {
+    margin: 0;
+    width: 100%;
+    max-width: 100%;
+  }
   html, body, #root { min-height: 100%; }
-  body { @apply font-sans antialiased bg-background text-foreground; margin: 0; overflow-x: hidden; }
+  body { @apply font-sans antialiased bg-background text-foreground; overflow-x: clip; touch-action: manipulation; }
   button, input { font: inherit; }
   button { cursor: pointer; }
   :focus-visible { outline: 3px solid hsl(var(--accent)); outline-offset: 3px; }
@@ -136,6 +146,35 @@
 }
 .display-font { font-family: var(--app-font-display); }
 .no-select { user-select: none; -webkit-user-select: none; }
+.entry-screen {
+  min-height: var(--app-height, 100svh);
+}
+
+/* Real phones: URL bar, text inflation, and overflow-x:hidden clipping do not
+   show up in a desktop “small viewport”. Size the title in px and skip enter
+   transforms that iOS/Android clip. */
+@media (hover: none) and (pointer: coarse) {
+  .animate-enter-up,
+  .animate-enter-right {
+    animation: none !important;
+  }
+
+  .entry-title {
+    font-size: 36px !important;
+    line-height: 0.95 !important;
+    max-width: 100% !important;
+  }
+
+  .entry-copy {
+    font-size: 14px !important;
+    line-height: 1.45 !important;
+    margin-top: 8px !important;
+  }
+
+  .entry-form-card {
+    padding: 1.1rem !important;
+  }
+}
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; }

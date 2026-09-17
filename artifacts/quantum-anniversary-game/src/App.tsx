@@ -48,6 +48,28 @@ function shuffleRewards() {
   return shuffled;
 }
 
+function useVisualViewportHeight() {
+  useEffect(() => {
+    const root = document.documentElement;
+    const viewport = window.visualViewport;
+
+    function sync() {
+      const height = viewport?.height ?? window.innerHeight;
+      root.style.setProperty('--app-height', `${Math.round(height)}px`);
+    }
+
+    sync();
+    viewport?.addEventListener('resize', sync);
+    window.addEventListener('resize', sync);
+    window.addEventListener('orientationchange', sync);
+    return () => {
+      viewport?.removeEventListener('resize', sync);
+      window.removeEventListener('resize', sync);
+      window.removeEventListener('orientationchange', sync);
+    };
+  }, []);
+}
+
 function useLandscapePhoneOrTablet() {
   const [show, setShow] = useState(false);
 
@@ -154,7 +176,7 @@ function Field({
         <span className="text-[#685bc7]">{icon}</span>
         <input
           aria-invalid={Boolean(error)}
-          className="h-12 min-w-0 flex-1 bg-transparent text-[15px] font-medium text-[#191919] outline-none placeholder:text-[#9a9398]"
+          className="h-12 min-w-0 flex-1 bg-transparent text-base font-medium text-[#191919] outline-none placeholder:text-[#9a9398]"
           data-testid={testId}
           onChange={(event) => onChange(event.target.value)}
           placeholder={placeholder}
@@ -241,10 +263,10 @@ function EntryScreen({ onStart }: { onStart: (entry: Entry) => void }) {
   }
 
   return (
-    <main className="relative min-h-[100dvh] overflow-x-hidden bg-[#1f1f1f] text-[#fbfbfb]">
+    <main className="entry-screen relative overflow-x-clip bg-[#1f1f1f] text-[#fbfbfb]">
       <div className="pointer-events-none absolute -right-20 -top-24 h-72 w-72 rounded-full bg-[#685bc7] opacity-80" />
       <div className="pointer-events-none absolute bottom-[-170px] left-[-100px] h-96 w-96 rounded-full border-[42px] border-[#685bc7]/10" />
-      <header className="relative mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-8 sm:py-5 lg:px-12">
+      <header className="relative mx-auto flex max-w-7xl items-center justify-between px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] sm:px-8 sm:py-5 lg:px-12">
         <Logo />
         <div className="flex items-center gap-2 text-right">
           <span className="hidden text-[10px] font-bold uppercase tracking-[.2em] text-[#dfdfdf] sm:inline">Celebrating</span>
@@ -258,10 +280,10 @@ function EntryScreen({ onStart }: { onStart: (entry: Entry) => void }) {
             <span className="h-px w-8 bg-[#ea078c] sm:w-10" />
             <span className="text-[10px] font-bold uppercase tracking-[.24em] text-[#ea078c] sm:text-[11px]">Quantum anniversary game</span>
           </div>
-          <h1 className="display-font mx-auto lg:mx-0 max-w-[700px] text-[clamp(2.35rem,11vw,6rem)] font-black uppercase leading-[.92] tracking-[-.045em] lg:text-[clamp(4rem,10vw,6rem)] lg:leading-[1]">
+          <h1 className="entry-title display-font mx-auto max-w-[700px] text-[36px] font-black uppercase leading-[.92] tracking-[-.045em] lg:mx-0 lg:text-[clamp(4rem,10vw,6rem)] lg:leading-[1]">
             Take your<br /><span className="text-[#ea078c]">best shot.</span>
           </h1>
-          <p className="mx-auto mt-3 max-w-lg text-sm leading-6 text-[#dfdfdf] sm:mt-7 sm:text-lg sm:leading-7 lg:mx-0">
+          <p className="entry-copy mx-auto mt-3 max-w-lg text-sm leading-6 text-[#dfdfdf] sm:mt-7 sm:text-lg sm:leading-7 lg:mx-0">
             Three throws. Four hoops. One reward to take home. Step up and shoot for a Quantum anniversary discount.
           </p>
           <div className="mt-4 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-[11px] font-bold uppercase tracking-[.16em] text-[#dfdfdf] sm:mt-10 sm:gap-x-8 sm:gap-y-3 sm:text-xs lg:justify-start">
@@ -274,7 +296,7 @@ function EntryScreen({ onStart }: { onStart: (entry: Entry) => void }) {
           <div className="absolute -right-2 -top-8 z-10 grid h-14 w-14 rotate-6 place-items-center rounded-full bg-[#685bc7] text-center text-white shadow-[4px_5px_0_#121212] sm:-right-3 sm:-top-14 sm:h-20 sm:w-20">
             <span className="display-font text-[13px] font-black leading-[.8] sm:text-[21px]">WIN<br />MORE</span>
           </div>
-          <div className="rounded-[28px] border border-[#e0d9dd] bg-[#ffffff] p-5 shadow-[11px_12px_0_#121212] sm:p-8">
+          <div className="entry-form-card rounded-[28px] border border-[#e0d9dd] bg-[#ffffff] p-5 shadow-[11px_12px_0_#121212] sm:p-8">
             <div className="mb-4 flex items-start justify-between sm:mb-7">
               <div>
                 <p className="display-font text-[1.65rem] font-black uppercase leading-none text-[#3f3f3f] sm:text-3xl">Get on court</p>
@@ -518,7 +540,7 @@ function Progress({ count }: { count: number }) {
 
 function GameScreen({ entry, shots, best, hoopRewards, onShot, onRestart }: { entry: Entry; shots: ShotResult[]; best: number; hoopRewards: number[]; onShot: (reward: ShotResult) => void; onRestart: () => void }) {
   return (
-    <main className="flex h-[100dvh] flex-col overflow-hidden bg-[#1f1f1f] text-[#fbfbfb]">
+    <main className="flex h-[var(--app-height,100svh)] flex-col overflow-hidden bg-[#1f1f1f] text-[#fbfbfb]">
       <header className="mx-auto flex w-full max-w-[1400px] shrink-0 items-center justify-between px-4 py-2.5 sm:px-8 sm:py-3 lg:px-12">
         <BrandMark />
         <div className="flex items-center gap-4">
@@ -613,7 +635,7 @@ function ClaimingScreen({
   }, [best, entry, onSuccess, shots, timestamp]);
 
   return (
-    <main className="relative grid min-h-[100dvh] place-items-center overflow-hidden bg-[#1f1f1f] px-5 text-[#fbfbfb]">
+    <main className="relative grid min-h-[var(--app-height,100svh)] place-items-center overflow-hidden bg-[#1f1f1f] px-5 text-[#fbfbfb]">
       <div className="animate-enter-up w-full max-w-md rounded-[28px] border-2 border-[#ffffff] bg-[#550333] p-8 text-center shadow-[8px_9px_0_#ffffff]">
         <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-[#685bc7] px-3 py-2 text-[10px] font-bold uppercase tracking-[.16em] text-white">
           <Trophy size={14} /> Claiming reward
@@ -659,7 +681,7 @@ function ResultScreen({ entry, shots, best, couponCode, onRestart }: { entry: En
   }
 
   return (
-    <main className="relative min-h-[100dvh] overflow-hidden bg-[#1f1f1f] text-[#fbfbfb]">
+    <main className="relative min-h-[var(--app-height,100svh)] overflow-hidden bg-[#1f1f1f] text-[#fbfbfb]">
       <Confetti />
       <header className="relative z-10 mx-auto flex max-w-7xl items-center justify-between px-5 py-5 sm:px-8 lg:px-12"><BrandMark /><button className="flex items-center gap-2 text-xs font-bold uppercase tracking-[.12em] text-[#dfdfdf] transition-colors hover:text-[#ea078c]" data-testid="button-new-player" onClick={onRestart} type="button"><RotateCcw size={15} /> New player</button></header>
       <div className="relative z-10 mx-auto grid max-w-6xl items-center gap-10 px-5 pb-12 pt-10 sm:px-8 lg:grid-cols-[.95fr_1.05fr] lg:gap-20 lg:pb-24 lg:pt-16 text-center lg:text-left">
@@ -817,10 +839,11 @@ function RoutedErrorBoundary({ children }: { children: ReactNode }) {
 }
 
 function NotFound() {
-  return <main className="grid min-h-[100dvh] place-items-center bg-[#1f1f1f] text-[#fbfbfb] p-6 text-center"><div><BrandMark /><h1 className="display-font mt-10 text-6xl font-black uppercase">Off court</h1><p className="mt-3 text-[#dfdfdf]">This page does not exist.</p></div></main>;
+  return <main className="grid min-h-[var(--app-height,100svh)] place-items-center bg-[#1f1f1f] text-[#fbfbfb] p-6 text-center"><div><BrandMark /><h1 className="display-font mt-10 text-6xl font-black uppercase">Off court</h1><p className="mt-3 text-[#dfdfdf]">This page does not exist.</p></div></main>;
 }
 
 function App() {
+  useVisualViewportHeight();
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
