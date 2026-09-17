@@ -690,41 +690,72 @@ function ResultScreen({ entry, shots, best, couponCode, onRestart }: { entry: En
   }
 
   return (
-    <main className="relative min-h-[var(--app-height,100svh)] overflow-hidden bg-[#1f1f1f] text-[#fbfbfb]">
+    <main className="relative min-h-[var(--app-height,100svh)] overflow-x-clip bg-[#1f1f1f] text-[#fbfbfb]">
       <Confetti />
-      <header className="relative z-10 mx-auto flex max-w-7xl items-center justify-between px-5 py-5 sm:px-8 lg:px-12"><BrandMark /><button className="flex items-center gap-2 text-xs font-bold uppercase tracking-[.12em] text-[#dfdfdf] transition-colors hover:text-[#ea078c]" data-testid="button-new-player" onClick={onRestart} type="button"><RotateCcw size={15} /> New player</button></header>
-      <div className="relative z-10 mx-auto grid max-w-6xl items-center gap-10 px-5 pb-12 pt-10 sm:px-8 lg:grid-cols-[.95fr_1.05fr] lg:gap-20 lg:pb-24 lg:pt-16 text-center lg:text-left">
-        <section className="animate-enter-up">
-          <div className="mb-6 inline-flex items-center gap-2 rounded-full bg-[#685bc7] px-3 py-2 text-[10px] font-bold uppercase tracking-[.16em] text-white"><Trophy size={14} /> Final whistle</div>
-          <h1 className="display-font text-[clamp(4rem,10vw,6rem)] font-black uppercase leading-[1] tracking-[-.04em]">That’s a<br /><span className="text-[#ea078c]">wrap.</span></h1>
-          <p className="mt-7 max-w-md text-lg leading-7 text-[#dfdfdf] mx-auto lg:ml-0">Nice shooting, <strong className="text-[#ffffff]">{entry.name}</strong>. {couponCode ? 'Your coupon is ready to use at checkout.' : 'Your best landed reward is ready to use.'}</p>
-          <div className="mt-9 flex flex-wrap gap-3 justify-center lg:justify-start">
-            <button className="flex items-center gap-2 rounded-xl bg-[#ea078c] px-5 py-3.5 text-sm font-bold text-[#ffffff] shadow-[0_4px_0_#d1067d] transition-transform hover:-translate-y-0.5 active:translate-y-1 active:shadow-none" data-testid="button-play-again" onClick={onRestart} type="button"><RotateCcw size={16} /> Play again</button>
+      <header className="relative z-10 mx-auto flex max-w-7xl items-center justify-between gap-3 px-3 py-3 sm:px-8 sm:py-5 lg:px-12">
+        <BrandMark />
+        <button
+          className="flex shrink-0 items-center gap-1.5 text-[11px] font-bold uppercase tracking-[.08em] text-[#dfdfdf] transition-colors hover:text-[#ea078c] sm:gap-2 sm:text-xs sm:tracking-[.12em]"
+          data-testid="button-new-player"
+          onClick={onRestart}
+          type="button"
+        >
+          <RotateCcw size={15} /> New player
+        </button>
+      </header>
+      <div className="relative z-10 mx-auto grid min-w-0 max-w-6xl items-center gap-6 px-3 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-4 text-center sm:gap-10 sm:px-8 sm:pb-12 sm:pt-10 lg:grid-cols-[.95fr_1.05fr] lg:gap-20 lg:pb-24 lg:pt-16 lg:text-left">
+        <section className="animate-enter-up min-w-0">
+          <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-[#685bc7] px-3 py-2 text-[10px] font-bold uppercase tracking-[.16em] text-white sm:mb-6">
+            <Trophy size={14} /> Final whistle
+          </div>
+          <h1 className="result-title display-font text-[32px] font-black uppercase leading-[.95] tracking-[-.04em] sm:text-[clamp(3rem,8vw,6rem)] lg:text-[clamp(4rem,10vw,6rem)] lg:leading-[1]">
+            That’s a<br /><span className="text-[#ea078c]">wrap.</span>
+          </h1>
+          <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-[#dfdfdf] sm:mt-7 sm:text-lg sm:leading-7 lg:ml-0">
+            Nice shooting, <strong className="text-[#ffffff]">{entry.name}</strong>. {couponCode ? 'Your coupon is ready to use at checkout.' : 'Your best landed reward is ready to use.'}
+          </p>
+          <div className="mt-5 flex flex-wrap justify-center gap-3 sm:mt-9 lg:justify-start">
+            <button className="flex items-center gap-2 rounded-xl bg-[#ea078c] px-5 py-3.5 text-sm font-bold text-[#ffffff] shadow-[0_4px_0_#d1067d] transition-transform hover:-translate-y-0.5 active:translate-y-1 active:shadow-none" data-testid="button-play-again" onClick={onRestart} type="button">
+              <RotateCcw size={16} /> Play again
+            </button>
           </div>
         </section>
-        <section className="animate-enter-right">
-          <div className="relative overflow-hidden rounded-[28px] border-2 border-[#ffffff] bg-[#550333] p-5 shadow-[8px_9px_0_#ffffff] sm:p-7">
+        <section className="animate-enter-right min-w-0">
+          <div className="relative mb-3 mr-2 overflow-hidden rounded-[22px] border-2 border-[#ffffff] bg-[#550333] p-3 shadow-[6px_7px_0_#ffffff] sm:mb-0 sm:mr-0 sm:rounded-[28px] sm:p-7 sm:shadow-[8px_9px_0_#ffffff]">
             <div className="absolute -right-16 -top-16 h-48 w-48 rounded-full border-[23px] border-[#f5c4e0]/20" />
-            <div className="relative">
-              <div className="flex items-center justify-between text-[#fce4f2]"><span className="text-[10px] font-bold uppercase tracking-[.2em]">Your anniversary score</span><Sparkles size={18} /></div>
-              <div className="mt-5 rounded-2xl bg-[#ffffff] px-5 py-6 text-center sm:px-8 sm:py-9">
+            <div className="relative min-w-0">
+              <div className="flex items-center justify-between gap-2 text-[#fce4f2]">
+                <span className="text-[10px] font-bold uppercase tracking-[.14em] sm:tracking-[.2em]">Your anniversary score</span>
+                <Sparkles className="shrink-0" size={18} />
+              </div>
+              <div className="mt-4 rounded-2xl bg-[#ffffff] px-3 py-5 text-center sm:mt-5 sm:px-8 sm:py-9">
                 <div className="text-[11px] font-bold uppercase tracking-[.2em] text-[#4d4d4d]">Best discount</div>
-                <div className="display-font mt-1 text-[clamp(6rem,16vw,10rem)] font-black leading-[.8] tracking-[-.04em] text-[#ea078c]" data-testid="text-best-discount">{best}%</div>
-                <div className="mt-3 text-sm font-bold uppercase tracking-[.17em] text-[#4d4d4d]">off your next Quantum pick</div>
+                <div className="result-best display-font mt-1 text-[56px] font-black leading-[.8] tracking-[-.04em] text-[#ea078c] sm:text-[clamp(5rem,16vw,10rem)]" data-testid="text-best-discount">{best}%</div>
+                <div className="mt-3 text-[11px] font-bold uppercase tracking-[.12em] text-[#4d4d4d] sm:text-sm sm:tracking-[.17em]">off your next Quantum pick</div>
                 {couponCode ? (
-                  <div className="mt-6 rounded-xl border border-[#e0d9dd] bg-[#f7f5f6] px-4 py-4">
+                  <div className="mt-5 rounded-xl border border-[#e0d9dd] bg-[#f7f5f6] px-3 py-3 sm:mt-6 sm:px-4 sm:py-4">
                     <div className="text-[10px] font-bold uppercase tracking-[.18em] text-[#636464]">Use at checkout</div>
-                    <div className="mt-2 flex items-center justify-center gap-2">
-                      <code className="display-font text-3xl font-black tracking-[.08em] text-[#292929] uppercase" data-testid="text-coupon-code">{couponCode}</code>
-                      <button aria-label="Copy coupon code" className="grid h-9 w-9 place-items-center rounded-full border border-[#e0d9dd] text-[#685bc7] hover:bg-[#ffffff]" data-testid="button-copy-coupon" onClick={copyCoupon} type="button">
+                    <div className="mt-2 flex min-w-0 items-center justify-center gap-2">
+                      <code className="display-font max-w-full break-all text-xl font-black uppercase tracking-[.08em] text-[#292929] sm:text-3xl" data-testid="text-coupon-code">{couponCode}</code>
+                      <button aria-label="Copy coupon code" className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-[#e0d9dd] text-[#685bc7] hover:bg-[#ffffff]" data-testid="button-copy-coupon" onClick={copyCoupon} type="button">
                         {copied ? <Check size={16} /> : <Copy size={16} />}
                       </button>
                     </div>
                   </div>
                 ) : null}
               </div>
-              <div className="mt-5 grid grid-cols-3 gap-2">{shots.map((shot, index) => <div className="rounded-xl bg-[#410020]/60 px-2 py-3 text-center" data-testid={`result-shot-${index + 1}`} key={`${shot}-${index}`}><div className="text-[9px] font-bold uppercase tracking-wider text-[#f5c4e0]">Shot {index + 1}</div><div className="display-font text-2xl font-black text-[#ffffff]">{shot === null ? 'Miss' : `${shot}%`}</div></div>)}</div>
-              <div className="mt-5 flex items-center justify-between border-t border-[#f5c4e0]/25 pt-4 text-[10px] font-bold uppercase tracking-[.12em] text-[#f5c4e0]"><span>Quantum.lk anniversary</span><span>Keep moving</span></div>
+              <div className="mt-4 grid grid-cols-3 gap-1.5 sm:mt-5 sm:gap-2">
+                {shots.map((shot, index) => (
+                  <div className="min-w-0 rounded-xl bg-[#410020]/60 px-1 py-2.5 text-center sm:px-2 sm:py-3" data-testid={`result-shot-${index + 1}`} key={`${shot}-${index}`}>
+                    <div className="text-[8px] font-bold uppercase tracking-wider text-[#f5c4e0] sm:text-[9px]">Shot {index + 1}</div>
+                    <div className="display-font text-lg font-black text-[#ffffff] sm:text-2xl">{shot === null ? 'Miss' : `${shot}%`}</div>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-4 flex flex-col items-center gap-1 border-t border-[#f5c4e0]/25 pt-3 text-[9px] font-bold uppercase tracking-[.1em] text-[#f5c4e0] sm:mt-5 sm:flex-row sm:justify-between sm:pt-4 sm:text-[10px] sm:tracking-[.12em]">
+                <span>Quantum.lk anniversary</span>
+                <span>Keep moving</span>
+              </div>
             </div>
           </div>
         </section>

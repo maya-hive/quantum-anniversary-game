@@ -194,6 +194,17 @@
   }
 }
 
+@media (max-width: 360px) {
+  .result-title {
+    font-size: 28px !important;
+    line-height: 0.95 !important;
+  }
+
+  .result-best {
+    font-size: 48px !important;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; }
 }
