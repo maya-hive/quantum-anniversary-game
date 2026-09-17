@@ -70,26 +70,35 @@ function useVisualViewportHeight() {
   }, []);
 }
 
+function isDeviceLandscape() {
+  const type = window.screen?.orientation?.type;
+  if (typeof type === 'string') return type.startsWith('landscape');
+  if (typeof window.orientation === 'number') return Math.abs(window.orientation) === 90;
+  return false;
+}
+
+function isPhoneOrTablet() {
+  return window.matchMedia('(pointer: coarse)').matches
+    || window.matchMedia('(max-width: 1024px)').matches;
+}
+
 function useLandscapePhoneOrTablet() {
   const [show, setShow] = useState(false);
 
   useEffect(() => {
-    const landscape = window.matchMedia('(orientation: landscape)');
-    const coarse = window.matchMedia('(pointer: coarse)');
-    const compact = window.matchMedia('(max-width: 1024px)');
-
     function update() {
-      setShow(landscape.matches && (coarse.matches || compact.matches));
+      // Use the device sensor orientation, not CSS viewport size. Opening the
+      // keyboard shrinks height so width > height and matchMedia(landscape)
+      // can fire while the phone is still in portrait.
+      setShow(isDeviceLandscape() && isPhoneOrTablet());
     }
 
     update();
-    landscape.addEventListener('change', update);
-    coarse.addEventListener('change', update);
-    compact.addEventListener('change', update);
+    window.screen?.orientation?.addEventListener('change', update);
+    window.addEventListener('orientationchange', update);
     return () => {
-      landscape.removeEventListener('change', update);
-      coarse.removeEventListener('change', update);
-      compact.removeEventListener('change', update);
+      window.screen?.orientation?.removeEventListener('change', update);
+      window.removeEventListener('orientationchange', update);
     };
   }, []);
 
