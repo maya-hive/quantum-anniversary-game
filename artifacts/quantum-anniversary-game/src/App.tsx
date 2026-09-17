@@ -39,7 +39,8 @@ type Session = {
 };
 
 function shuffleRewards() {
-  const shuffled = [...HOOP_REWARDS];
+  const extra = HOOP_REWARDS[Math.floor(Math.random() * HOOP_REWARDS.length)]!;
+  const shuffled = [...HOOP_REWARDS, extra];
   for (let index = shuffled.length - 1; index > 0; index -= 1) {
     const swapIndex = Math.floor(Math.random() * (index + 1));
     [shuffled[index], shuffled[swapIndex]] = [shuffled[swapIndex], shuffled[index]];
@@ -261,7 +262,7 @@ function EntryScreen({ onStart }: { onStart: (entry: Entry) => void }) {
             Take your<br /><span className="text-[#ea078c]">best shot.</span>
           </h1>
           <p className="mt-7 max-w-lg text-base leading-7 text-[#dfdfdf] sm:text-lg mx-auto lg:mx-0">
-            Three throws. Three hoops. One reward to take home. Step up and shoot for a Quantum anniversary discount.
+            Three throws. Four hoops. One reward to take home. Step up and shoot for a Quantum anniversary discount.
           </p>
           <div className="mt-10 flex flex-wrap items-center gap-x-8 gap-y-3 text-xs font-bold uppercase tracking-[.16em] text-[#dfdfdf] justify-center lg:justify-start">
             <span className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-[#ea078c]" /> 3 chances</span>
@@ -722,7 +723,7 @@ function Home() {
       setEntry(saved.entry);
       setShots(saved.shots ?? []);
       setBest(saved.best ?? 0);
-      setHoopRewards(saved.hoopRewards?.length === HOOP_REWARDS.length ? saved.hoopRewards : shuffleRewards());
+      setHoopRewards(saved.hoopRewards?.length === HOOP_POSITIONS.length ? saved.hoopRewards : shuffleRewards());
       setTimestamp(saved.timestamp ?? new Date().toISOString());
       setCouponCode(saved.couponCode ?? null);
       setCampaignCompleted(completed);
