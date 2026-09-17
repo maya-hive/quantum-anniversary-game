@@ -149,6 +149,15 @@
 .entry-screen {
   min-height: var(--app-height, 100svh);
 }
+.entry-form-card form,
+.entry-form-card label {
+  width: 100%;
+}
+.entry-form-card input {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
 
 /* Real phones: URL bar, text inflation, and overflow-x:hidden clipping do not
    show up in a desktop “small viewport”. Size the title in px and skip enter
@@ -173,6 +182,15 @@
 
   .entry-form-card {
     padding: 1.1rem !important;
+    width: 100%;
+  }
+
+  .entry-form-card form,
+  .entry-form-card label,
+  .entry-form-card input {
+    width: 100% !important;
+    max-width: 100%;
+    box-sizing: border-box;
   }
 }
 

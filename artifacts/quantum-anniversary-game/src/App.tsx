@@ -170,13 +170,13 @@ function Field({
   testId: string;
 }) {
   return (
-    <label className="block">
+    <label className="block w-full">
       <span className="mb-1.5 block text-[11px] font-bold uppercase tracking-[.16em] text-[#3f3f3f]">{label}</span>
-      <span className={`flex items-center gap-3 rounded-xl border bg-[#ffffff] px-3.5 transition-colors ${error ? 'border-[#e9002b]' : 'border-[#e0d9dd] focus-within:border-[#685bc7]'}`}>
-        <span className="text-[#685bc7]">{icon}</span>
+      <span className={`flex w-full items-center gap-3 rounded-xl border bg-[#ffffff] px-3.5 transition-colors ${error ? 'border-[#e9002b]' : 'border-[#e0d9dd] focus-within:border-[#685bc7]'}`}>
+        <span className="shrink-0 text-[#685bc7]">{icon}</span>
         <input
           aria-invalid={Boolean(error)}
-          className="h-12 min-w-0 flex-1 bg-transparent text-base font-medium text-[#191919] outline-none placeholder:text-[#9a9398]"
+          className="h-12 w-full min-w-0 flex-1 bg-transparent text-base font-medium text-[#191919] outline-none placeholder:text-[#9a9398]"
           data-testid={testId}
           onChange={(event) => onChange(event.target.value)}
           placeholder={placeholder}
@@ -292,7 +292,7 @@ function EntryScreen({ onStart }: { onStart: (entry: Entry) => void }) {
           </div>
         </section>
 
-        <section className="animate-enter-right relative mx-auto w-full max-w-[470px]">
+        <section className="animate-enter-right relative mx-auto w-full min-w-0 max-w-[470px]">
           <div className="absolute -right-2 -top-8 z-10 grid h-14 w-14 rotate-6 place-items-center rounded-full bg-[#685bc7] text-center text-white shadow-[4px_5px_0_#121212] sm:-right-3 sm:-top-14 sm:h-20 sm:w-20">
             <span className="display-font text-[13px] font-black leading-[.8] sm:text-[21px]">WIN<br />MORE</span>
           </div>
@@ -304,7 +304,7 @@ function EntryScreen({ onStart }: { onStart: (entry: Entry) => void }) {
               </div>
               <div className="rounded-full bg-[#fce4f2] px-3 py-1.5 text-[10px] font-bold uppercase tracking-[.14em] text-[#685bc7]">Free to play</div>
             </div>
-            <form className="space-y-3 sm:space-y-4" onSubmit={submit}>
+            <form className="w-full space-y-3 sm:space-y-4" onSubmit={submit}>
               <Field error={errors.name} icon={<UserRound size={17} />} label="Your name" onChange={setName} placeholder="e.g. Ayesha Perera" testId="input-player-name" value={name} />
               <Field error={errors.email} icon={<Mail size={17} />} label="Email address" onChange={changeEmail} placeholder="you@example.com" testId="input-player-email" type="email" value={email} />
               <Field error={errors.phone} icon={<Phone size={17} />} label="Phone number" onChange={setPhone} placeholder="+94 77 123 4567" testId="input-player-phone" type="tel" value={phone} />
