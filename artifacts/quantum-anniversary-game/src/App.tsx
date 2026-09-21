@@ -21,7 +21,7 @@ import { completeCampaign, lookupCampaign } from '@workspace/api-client-react';
 
 const queryClient = new QueryClient();
 const STORAGE_KEY = 'quantum-hoops-anniversary-session';
-const HOOP_REWARDS = [15, 18, 20] as const;
+const HOOP_REWARDS = [12, 15, 18, 20] as const;
 const HOOP_POSITIONS = [.13, .375, .62, .86] as const;
 const MAX_SHOTS = 3;
 
@@ -39,13 +39,19 @@ type Session = {
 };
 
 function shuffleRewards() {
-  const extra = HOOP_REWARDS[Math.floor(Math.random() * HOOP_REWARDS.length)]!;
-  const shuffled = [...HOOP_REWARDS, extra];
+  const shuffled = [...HOOP_REWARDS];
   for (let index = shuffled.length - 1; index > 0; index -= 1) {
     const swapIndex = Math.floor(Math.random() * (index + 1));
     [shuffled[index], shuffled[swapIndex]] = [shuffled[swapIndex], shuffled[index]];
   }
   return shuffled;
+}
+
+function isCurrentRewardSet(rewards: number[] | undefined) {
+  if (!rewards || rewards.length !== HOOP_POSITIONS.length) return false;
+  const expected = [...HOOP_REWARDS].sort((a, b) => a - b);
+  const actual = [...rewards].sort((a, b) => a - b);
+  return expected.every((value, index) => value === actual[index]);
 }
 
 function useVisualViewportHeight() {
@@ -785,7 +791,7 @@ function Home() {
       setEntry(saved.entry);
       setShots(saved.shots ?? []);
       setBest(saved.best ?? 0);
-      setHoopRewards(saved.hoopRewards?.length === HOOP_POSITIONS.length ? saved.hoopRewards : shuffleRewards());
+      setHoopRewards(isCurrentRewardSet(saved.hoopRewards) ? saved.hoopRewards : shuffleRewards());
       setTimestamp(saved.timestamp ?? new Date().toISOString());
       setCouponCode(saved.couponCode ?? null);
       setCampaignCompleted(completed);
