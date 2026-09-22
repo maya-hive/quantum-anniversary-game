@@ -38,13 +38,20 @@ type Session = {
   campaignCompleted: boolean;
 };
 
-function shuffleRewards() {
-  const shuffled = [...HOOP_REWARDS];
-  for (let index = shuffled.length - 1; index > 0; index -= 1) {
-    const swapIndex = Math.floor(Math.random() * (index + 1));
-    [shuffled[index], shuffled[swapIndex]] = [shuffled[swapIndex], shuffled[index]];
+function shuffleRewards(previous?: number[]) {
+  for (let attempt = 0; attempt < 40; attempt += 1) {
+    const values = [...HOOP_REWARDS];
+    for (let index = values.length - 1; index > 0; index -= 1) {
+      const swapIndex = Math.floor(Math.random() * (index + 1));
+      [values[index], values[swapIndex]] = [values[swapIndex], values[index]];
+    }
+    const staysPut = previous?.some((value, index) => values[index] === value);
+    if (!staysPut) return values;
   }
-  return shuffled;
+  if (previous && previous.length === HOOP_REWARDS.length) {
+    return previous.map((_, index) => previous[(index + 1) % previous.length]!);
+  }
+  return [...HOOP_REWARDS];
 }
 
 function isCurrentRewardSet(rewards: number[] | undefined) {
@@ -298,6 +305,16 @@ function EntryScreen({ onStart }: { onStart: (entry: Entry) => void }) {
           <h1 className="entry-title display-font mx-auto max-w-[700px] text-[36px] font-black uppercase leading-[.92] tracking-[-.045em] lg:mx-0 lg:text-[clamp(4rem,10vw,6rem)] lg:leading-[1]">
             Take your<br /><span className="text-[#ea078c]">best shot.</span>
           </h1>
+          <aside className="entry-terms mx-auto mt-3 max-w-lg rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-left sm:mt-6 sm:px-5 sm:py-4 lg:mx-0">
+            <h2 className="text-[10px] font-bold uppercase tracking-[.2em] text-[#ea078c] sm:text-[11px]">
+              Terms and Conditions
+            </h2>
+            <ul className="mt-2 list-disc space-y-2 pl-4 text-[11px] leading-5 text-[#dfdfdf] sm:text-xs sm:leading-5">
+              <li>Game-related offers and promotions cannot be combined with any other ongoing offers, promotions, or discounts.</li>
+              <li>However, an additional discount may be applied where specifically stated or permitted by the promotion.</li>
+              <li>The company reserves the right to determine the eligibility and applicability of discounts and promotions.</li>
+            </ul>
+          </aside>
           <p className="entry-copy mx-auto mt-3 max-w-lg text-sm leading-6 text-[#dfdfdf] sm:mt-7 sm:text-lg sm:leading-7 lg:mx-0">
             Three throws. Four hoops. One reward to take home. Step up and shoot for a Quantum anniversary discount.
           </p>
@@ -578,7 +595,7 @@ function GameScreen({ entry, shots, best, hoopRewards, onShot, onRestart }: { en
           <GameCourt hoopRewards={hoopRewards} onShot={onShot} shots={shots} />
         </div>
         <div className="mt-3 flex shrink-0 items-center justify-between gap-3 text-xs text-[#dfdfdf]">
-          <span className="flex items-center gap-2"><span className="grid h-6 w-6 place-items-center rounded-full bg-[#685bc7] text-white"><Target size={13} /></span> Hit a hoop to reveal its hidden reward.</span>
+          <span className="flex items-center gap-2"><span className="grid h-6 w-6 place-items-center rounded-full bg-[#685bc7] text-white"><Target size={13} /></span> Rewards shuffle after every shot. Same hoop never keeps the same value.</span>
           <span className="hidden font-bold uppercase tracking-[.12em] sm:block">{MAX_SHOTS - shots.length} {MAX_SHOTS - shots.length === 1 ? 'chance' : 'chances'} left</span>
         </div>
       </div>
@@ -832,7 +849,11 @@ function Home() {
     const next = [...shots, reward];
     setShots(next);
     if (reward !== null) setBest(Math.max(best, reward));
-    if (next.length === MAX_SHOTS) setPhase('claiming');
+    if (next.length === MAX_SHOTS) {
+      setPhase('claiming');
+      return;
+    }
+    setHoopRewards((layout) => shuffleRewards(layout));
   }
 
   const finishClaim = useCallback((code: string | null) => {

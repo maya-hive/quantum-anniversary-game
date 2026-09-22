@@ -180,6 +180,16 @@
     margin-top: 8px !important;
   }
 
+  .entry-terms {
+    margin-top: 10px !important;
+    padding: 0.7rem 0.85rem !important;
+  }
+
+  .entry-terms li {
+    font-size: 11px !important;
+    line-height: 1.4 !important;
+  }
+
   .entry-form-card {
     padding: 1.1rem !important;
     width: 100%;
