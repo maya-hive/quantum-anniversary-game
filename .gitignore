@@ -50,3 +50,5 @@ Thumbs.db
 
 .env
 data/campaign-exports/
+
+ecosystem.config.js
