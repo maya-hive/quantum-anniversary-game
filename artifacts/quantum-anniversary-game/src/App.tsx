@@ -737,6 +737,16 @@ function ResultScreen({ entry, shots, best, couponCode, onRestart }: { entry: En
           <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-[#dfdfdf] sm:mt-7 sm:text-lg sm:leading-7 lg:ml-0">
             Nice shooting, <strong className="text-[#ffffff]">{entry.name}</strong>. {couponCode ? 'Your coupon is ready to use at checkout.' : 'Your best landed reward is ready to use.'}
           </p>
+          <aside className="entry-terms mx-auto mt-3 max-w-lg rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-left sm:mt-6 sm:px-5 sm:py-4 lg:mx-0">
+            <h2 className="text-[10px] font-bold uppercase tracking-[.2em] text-[#ea078c] sm:text-[11px]">
+              Terms and Conditions
+            </h2>
+            <ul className="mt-2 list-disc space-y-2 pl-4 text-[11px] leading-5 text-[#dfdfdf] sm:text-xs sm:leading-5">
+              <li>Game-related offers and promotions cannot be combined with any other ongoing offers, promotions, or discounts.</li>
+              <li>However, an additional discount may be applied where specifically stated or permitted by the promotion.</li>
+              <li>The company reserves the right to determine the eligibility and applicability of discounts and promotions.</li>
+            </ul>
+          </aside>
           <div className="mt-5 flex flex-wrap justify-center gap-3 sm:mt-9 lg:justify-start">
             <button className="flex items-center gap-2 rounded-xl bg-[#ea078c] px-5 py-3.5 text-sm font-bold text-[#ffffff] shadow-[0_4px_0_#d1067d] transition-transform hover:-translate-y-0.5 active:translate-y-1 active:shadow-none" data-testid="button-play-again" onClick={onRestart} type="button">
               <RotateCcw size={16} /> Play again
